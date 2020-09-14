@@ -1,0 +1,29 @@
+- name: Extract project info
+  block:
+    - manage_toml:
+        path: "{{master_project_folder}}/pyproject.toml"
+        copy_as:
+          path: "{{master_project_folder}}/provision/roles/base/files/.toml_info.yaml"
+          method: to_yaml
+      register: toml_meta
+      delegate_to: localhost
+
+    - set_fact:
+        poetry_info: "{{toml_meta.out.tool.poetry}}"
+        project_info: "{{toml_meta.out.tool.project}}"
+    - set_fact:
+        image_name: "{{poetry_info.name}}-{{env_name}}"
+        image_tag: "{{poetry_info.version}}"
+    - set_fact:
+        image_fullname: "{{poetry_info.name}}-{{env_name}}:{{poetry_info.version}}"
+#    - include_vars: "{{master_project_folder}}/provision/envs/{{env_name}}/.vars.yaml"
+
+- name: Detect project environments
+  block:
+    - find:
+        paths: [ '{{project_folder}}/provision/envs' ]
+        file_type: directory
+      register: find_meta
+    - set_fact:
+        project_envs: >-
+          {{"[Path(x['path']).name for x in files]"|eval(files=find_meta.files)}}

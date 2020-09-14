@@ -1,0 +1,13 @@
+all:
+  hosts:
+    egistic_db:
+      ansible_host: 94.247.135.91
+      ansible_user: egistic_db
+      ansible_python_interpreter: "/usr/bin/python3.8"
+      become: no
+  vars:
+    env_name: "production"
+    build_target: "production"
+    project_folder: "/home/egistic_db/egistic/egistic_yield_predictor"
+
+

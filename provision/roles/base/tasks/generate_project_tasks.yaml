@@ -1,0 +1,24 @@
+- name: Generate project tasks
+  block:
+    - name: Read toml file
+      include_vars:
+        file: "{{toml_meta.copy_as.path}}"
+        name: toml_data
+
+    - eval:
+        expression: |
+          for k,v in project_tasks.items():
+            project_tasks[k]=" ".join(map(str.strip, v.splitlines())).strip()
+        data:
+          project_tasks: "{{toml_data.tool.project.tasks}}"
+        out: project_tasks
+      register: eval_meta
+    - set_fact:
+        project_tasks: "{{eval_meta.project_tasks}}"
+    - name: Create project tasks
+      manage_toml:
+        path: "{{project_folder}}/pyproject.toml"
+        data:
+          tool:
+            taskipy:
+              tasks: "{{project_tasks}}"

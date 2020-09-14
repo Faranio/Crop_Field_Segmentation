@@ -1,0 +1,25 @@
+default:
+  postgis_yield_prediction:
+    image: "mdillon/postgis"
+    name: postgis_yield_prediction
+    volumes:
+      - /docker_data/volumes/postgis_yield_prediction:/var/lib/postgresql/data
+    env:
+      ALLOW_IP_RANGE: "0.0.0.0/0"
+      POSTGRES_DB: "{{infra.POSTGIS_YIELD_PREDICTION.database}}"
+      POSTGRES_USER: "{{infra.POSTGIS_YIELD_PREDICTION.user}}"
+      PGPORT: "{{infra.POSTGIS_YIELD_PREDICTION.port}}"
+      POSTGRES_PASSWORD: "{{infra.POSTGIS_YIELD_PREDICTION.password}}"
+    ports:
+      - "{{infra.POSTGIS_YIELD_PREDICTION.port}}:{{infra.POSTGIS_YIELD_PREDICTION.port}}"
+
+production:
+  postgis_yield_prediction:
+    comparisons:
+      '*': strict
+
+
+
+
+
+

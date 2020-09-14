@@ -1,0 +1,21 @@
+default:
+  postgis_imagination:
+    image: "mdillon/postgis"
+    name: postgis
+    volumes:
+      - /docker_data/volumes/postgis_data:/var/lib/postgresql/data
+    env:
+      ALLOW_IP_RANGE: "0.0.0.0/0"
+      POSTGRES_DB: "{{infra.POSTGIS_IMAGINATION.database}}"
+      POSTGRES_USER: "{{infra.POSTGIS_IMAGINATION.user}}"
+      PGPORT: "{{infra.POSTGIS_IMAGINATION.port}}"
+      POSTGRES_PASSWORD: "{{infra.POSTGIS_IMAGINATION.password}}"
+    ports:
+      - "{{infra.POSTGIS_IMAGINATION.port}}:{{infra.POSTGIS_IMAGINATION.port}}"
+
+
+
+
+
+
+
