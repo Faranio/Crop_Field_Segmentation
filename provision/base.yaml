@@ -1,0 +1,11 @@
+- hosts: all
+  become: no
+  roles:
+    - name: base
+      vars:
+        build_docker_image: no
+  tasks:
+    - name: Greetings
+      debug:
+        msg: "Project is initalized!!!"
+

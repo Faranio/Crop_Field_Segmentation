@@ -1,0 +1,38 @@
+- block:
+    - assert:
+        that:
+          - so.name is defined
+
+    - set_fact:
+        added_params:
+          name: "{{so.name}}"
+          command: "{{so.command}}"
+      when: so.command is defined
+
+    - set_fact:
+        added_params:
+          name: "{{so.name}}"
+          command: >-
+            celery worker --app=app.celery_worker -O fair --loglevel=INFO
+            --concurrency={{so.celery_worker.concurrency|default(1)}}
+            --hostname={{so.name}}
+            -Q {{so.celery_worker.queues|default(so.name)}}
+      when: so.celery_worker is defined
+  vars: { so: "{{service_options}}" }
+
+#- include_role: { name: base, tasks_from: read_dyna_data.yaml }
+#  vars:
+#    data_path: 'templates/service.yaml'
+#    set_to: service
+
+- include_role: { name: base, tasks_from: read_dyna_data.yaml }
+  vars:
+    data: "{{{env_name:docker.service}}}"
+    merge_items: [ "{{added_params}}" ]
+    set_to: service_info
+
+- include_role: { name: base, tasks_from: run_container.yaml }
+  vars:
+    info: "{{service_info}}"
+
+

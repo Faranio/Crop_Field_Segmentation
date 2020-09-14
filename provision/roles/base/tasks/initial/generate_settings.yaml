@@ -1,0 +1,43 @@
+- include_tasks: read_dyna_data.yaml
+  vars: { data_path: 'templates/infra.yaml', set_to: infra }
+
+- include_tasks: read_dyna_data.yaml
+  vars: { data: "{{project_info.env_data}}", set_to: project_data }
+
+- include_tasks: read_dyna_data.yaml
+  vars:
+    data_path: 'templates/settings.yaml'
+    merge_items: [ "{{infra}}" ]
+    set_to: settings
+
+- copy:
+    content: "{{'out={e:d}'|eval(d=settings,e=env_name)|to_nice_yaml(indent=2)}}"
+    dest: "{{project_folder}}/settings.yaml"
+    mode: '600'
+
+- include_tasks: read_dyna_data.yaml
+  vars: { data_path: 'templates/docker/default.yaml', set_to: docker_default }
+
+- include_tasks: read_dyna_data.yaml
+  vars:
+    data_path: 'templates/docker/infra.yaml'
+    merge_items: [ "{{docker_default}}" ]
+    merge_items_first: yes
+    set_to: docker_infra
+
+- include_tasks: read_dyna_data.yaml
+  vars:
+    data_path: 'templates/docker/service.yaml'
+    merge_items: [ "{{docker_default}}" ]
+    merge_items_first: yes
+    set_to: docker_service
+
+- set_fact:
+    docker:
+      infra: "{{docker_infra}}"
+      service: "{{docker_service}}"
+
+
+
+
+

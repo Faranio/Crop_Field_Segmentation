@@ -1,0 +1,58 @@
+- set_fact:
+    rddi:
+      data_name: "{{data_name|default(((data_path|default('custom_data.txt'))|basename|splitext)[0])}}"
+      collect_to: "{{collect_to|default('rddi.collected_data')}}"
+      collected_data: { }
+      data: "{{data|default({})}}"
+      merge_items: "{{merge_items|default([])}}"
+      flatten: "{{flatten|default(False)}}"
+      merge_items_first: "{{merge_items_first|default(False)}}"
+- debug: msg="Processing '{{rddi.data_name}}'..."
+- include_vars:
+    file: "{{data_path}}"
+    name: data
+  when: data_path is defined
+#- debug: msg="{{{'the_data':(rddi.data|bool)|ternary(rddi.data,data)}}}"
+#- debug: msg="{{{'merge_items':rddi.merge_items}}}"
+- eval:
+    expression: |
+      data = Box([kv for kv in data.items() if kv[0] in project_envs + ['default']])
+      default = data.get('default') or {}
+      env_data = data.get(env_name) or {}
+      if merge_items_first:
+          merged_data=functools.reduce(merge,merge_items+[default, env_data])
+      else:
+          merged_data=functools.reduce(merge,[default, env_data]+merge_items)
+      out_data=Box(default_box=True)
+      if flatten:
+          merged_data=merged_data[data_name]
+      if set_to:
+          out_data=merged_data
+          fact_key=set_to
+      else:
+          fact_key=collect_to
+          collected_data[data_name]=merged_data
+          out_data.update(collected_data)
+    data:
+      merge_items_first: "{{rddi.merge_items_first}}"
+      data_name: "{{rddi.data_name}}"
+      data: "{{(rddi.data|bool)|ternary(rddi.data,data)}}"
+      merge_items: "{{rddi.merge_items}}"
+      flatten: "{{rddi.flatten}}"
+      project_envs: "{{project_envs}}"
+      env_name: "{{env_name}}"
+      collected_data: >-
+        {{lookup('vars',rddi.collect_to,
+                  default=rddi.collected_data)}}
+      collect_to: "{{rddi.collect_to}}"
+      set_to: "{{set_to|default('')}}"
+    out:
+      - out_data
+      - fact_key
+  register: eval_meta
+#- debug: msg="{{{eval_meta.fact_key:eval_meta.out_data}}}"
+- set_fact:
+    "{{eval_meta.fact_key}}": "{{eval_meta.out_data}}"
+
+
+
