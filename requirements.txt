@@ -1,0 +1,7 @@
+numpy==1.18.4
+Pillow==7.2.0
+rasterio==1.1.5
+torch==1.6.0+cu101
+torchfile==0.1.0
+torchsummary==1.5.1
+torchvision==0.7.0+cu101
