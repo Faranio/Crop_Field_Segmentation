@@ -128,7 +128,6 @@ def tile_pipeline(image_path, model, confidence, threshold):
 				mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
 				mask[mask < threshold] = 0
 				mask[mask >= threshold] = 1
-				mask = mask.tolist()
 				temp.append(mask)
 				
 		masks[tile_path] = temp
@@ -161,8 +160,7 @@ def image_pipeline(image_path, model, confidence, threshold):
 		if prediction[0]['scores'][i] > confidence:
 			mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
 			mask[mask < threshold] = 0
-			mask[mask >= threshold] = 1
-			mask = mask.tolist()
+			mask[mask >= threshold] = 
 			masks[image_path].append(mask)
 	
 	return masks
