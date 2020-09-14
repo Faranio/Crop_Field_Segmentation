@@ -1,4 +1,5 @@
 import os
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,6 +19,7 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from app.app import s2_storage_folder, data_folder, cache_folder
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+os.environ['TORCH_HOME'] = data_folder.path
 
 
 @logger.trace()
