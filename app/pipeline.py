@@ -63,7 +63,7 @@ def get_instance_segmentation_model(num_classes):
 
 
 @logger.trace()
-def crop_tif(tif_file, width=15000, height=15000, out_dir='Temp'):
+def crop_tif(tif_file, width=20000, height=20000, out_dir='Temp'):
     try:
         os.mkdir(out_dir)
     except FileExistsError:
@@ -79,8 +79,6 @@ def crop_tif(tif_file, width=15000, height=15000, out_dir='Temp'):
         tile_count += 1
         if tile_count % 25 == 0:
             logger.debug("tile_count: %s", tile_count)
-        # right = left + width
-        # bottom = up - height
 
         temp = [{'type': 'Polygon', 'coordinates': [[(left, up, 0.0),
                                                      (left + width, up, 0.0),
@@ -135,10 +133,9 @@ def process_tile(working_dir, tile_path, model, confidence, threshold):
             mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
             mask[mask < threshold] = 0
             mask[mask >= threshold] = 1
-            # mask = mask.tolist()
             temp.append(mask)
 
-    # masks[tile_path] = temp
+    masks[tile_path] = temp
     return temp
 
 
@@ -179,7 +176,6 @@ def image_pipeline(image_path, model, confidence, threshold):
             mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
             mask[mask < threshold] = 0
             mask[mask >= threshold] = 1
-            # mask = mask.tolist()
             masks[image_path].append(mask)
 
     return masks
