@@ -1,5 +1,4 @@
 import os
-import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -108,6 +107,7 @@ def crop_tif(tif_file, width=20000, height=20000, out_dir='Temp'):
 @logger.trace()
 def process_tile(working_dir, tile_path, model, confidence, threshold):
     logger.debug("tile_path: %s", tile_path)
+    masks = {}
     uint8_type = True
     tile = rasterio.open(os.path.join(working_dir, tile_path))
 
@@ -140,8 +140,8 @@ def process_tile(working_dir, tile_path, model, confidence, threshold):
 
 
 @logger.trace()
-def tile_pipeline(image_path, model, confidence, threshold, working_dir='Temp'):
-    crop_tif(image_path, out_dir=working_dir)
+def tile_pipeline(image_path, model, confidence, threshold, tile_width=20000, tile_height=20000, working_dir='Temp'):
+    crop_tif(image_path, tile_width, tile_height, out_dir=working_dir)
     masks = {}
 
     for tile_path in os.listdir(working_dir):
@@ -190,7 +190,7 @@ def remove_temp_files():
 
 
 @logger.trace()
-def get_mask_info(image_path, model_path, confidence=0.6, threshold=100,
+def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000,
                   working_dir='Temp'):  # <----- previously this function was named main()
     model = get_instance_segmentation_model(2)
     model.load_state_dict(torch.load(model_path, map_location=device))
@@ -201,7 +201,7 @@ def get_mask_info(image_path, model_path, confidence=0.6, threshold=100,
     image = rasterio.open(image_path)
 
     if image.bounds[2] - image.bounds[0] > 20000 or image.bounds[3] - image.bounds[1] > 20000:
-        masks = tile_pipeline(image_path, model, confidence, threshold, working_dir=working_dir)
+        masks = tile_pipeline(image_path, model, confidence, threshold, tile_width, tile_height, working_dir=working_dir)
     else:
         masks = image_pipeline(image_path, model, confidence, threshold)
 
@@ -226,6 +226,8 @@ def main():
     mask_info = get_mask_info(image_path=out_filepath,
                               confidence=0.4,
                               model_path=model_path,
+                              tile_width=20000,
+                              tile_height=20000,
                               working_dir=working_folder['tilings'])
     for k, masks, in mask_info.items():
         logger.debug("k: %s", k)
