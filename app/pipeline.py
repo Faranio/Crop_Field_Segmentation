@@ -22,6 +22,19 @@ os.environ['TORCH_HOME'] = data_folder.path
 
 
 @logger.trace()
+def get_instance_segmentation_model(num_classes):
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
+    hidden_layer = 256
+    model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask, hidden_layer, num_classes)
+    return model
+
+model = get_instance_segmentation_model(2)
+
+
+@logger.trace()
 def convert_to_epsg(tif_file, out_tif_file):
     src = rasterio.open(tif_file)
     dst_crs = "EPSG:3857"
@@ -48,17 +61,6 @@ def convert_to_epsg(tif_file, out_tif_file):
                   dst_transform=transform,
                   dst_crs=dst_crs,
                   resampling=Resampling.nearest)
-
-
-@logger.trace()
-def get_instance_segmentation_model(num_classes):
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-    in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-    hidden_layer = 256
-    model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask, hidden_layer, num_classes)
-    return model
 
 
 @logger.trace()
@@ -105,7 +107,7 @@ def crop_tif(tif_file, width=20000, height=20000, out_dir='Temp'):
 
 
 @logger.trace()
-def process_tile(working_dir, tile_path, model, confidence, threshold):
+def process_tile(working_dir, tile_path, confidence, threshold):
     logger.debug("tile_path: %s", tile_path)
     masks = {}
     uint8_type = True
@@ -118,6 +120,7 @@ def process_tile(working_dir, tile_path, model, confidence, threshold):
     array = np.nan_to_num(array)
 
     if not uint8_type:
+        array = array.astype(np.float32, order='C') / 32768.0
         array = (array * 255 / np.max(array)).astype('uint8')
 
     image = Image.fromarray(array)
@@ -140,17 +143,17 @@ def process_tile(working_dir, tile_path, model, confidence, threshold):
 
 
 @logger.trace()
-def tile_pipeline(image_path, model, confidence, threshold, tile_width=20000, tile_height=20000, working_dir='Temp'):
+def tile_pipeline(image_path, confidence, threshold, tile_width=20000, tile_height=20000, working_dir='Temp'):
     crop_tif(image_path, tile_width, tile_height, out_dir=working_dir)
     masks = {}
 
     for tile_path in os.listdir(working_dir):
-        masks[tile_path] = process_tile(working_dir, tile_path, model, confidence, threshold)
+        masks[tile_path] = process_tile(working_dir, tile_path, confidence, threshold)
     return masks
 
 
 @logger.trace()
-def image_pipeline(image_path, model, confidence, threshold):
+def image_pipeline(image_path, confidence, threshold):
     masks = {image_path: []}
     uint8_type = True
 
@@ -163,6 +166,7 @@ def image_pipeline(image_path, model, confidence, threshold):
     array = np.nan_to_num(array)
 
     if not uint8_type:
+        array = array.astype(np.float32, order='C') / 32768.0
         array = (array * 255 / np.max(array)).astype('uint8')
 
     image = Image.fromarray(array)
@@ -192,7 +196,6 @@ def remove_temp_files():
 @logger.trace()
 def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000,
                   working_dir='Temp'):  # <----- previously this function was named main()
-    model = get_instance_segmentation_model(2)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
@@ -200,10 +203,10 @@ def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_wi
     convert_to_epsg(image_path, image_path)
     image = rasterio.open(image_path)
 
-    if image.bounds[2] - image.bounds[0] > 20000 or image.bounds[3] - image.bounds[1] > 20000:
-        masks = tile_pipeline(image_path, model, confidence, threshold, tile_width, tile_height, working_dir=working_dir)
+    if image.bounds[2] - image.bounds[0] > tile_width or image.bounds[3] - image.bounds[1] > tile_height:
+        masks = tile_pipeline(image_path, confidence, threshold, tile_width, tile_height, working_dir=working_dir)
     else:
-        masks = image_pipeline(image_path, model, confidence, threshold)
+        masks = image_pipeline(image_path, confidence, threshold)
 
     # remove_temp_files()
 
@@ -224,7 +227,7 @@ def main():
     logger.debug("out_filepath: %s", out_filepath)
 
     mask_info = get_mask_info(image_path=out_filepath,
-                              confidence=0.4,
+                              confidence=0.6,
                               model_path=model_path,
                               tile_width=20000,
                               tile_height=20000,
