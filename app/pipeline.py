@@ -134,8 +134,8 @@ def process_tile(working_dir, tile_path, confidence, threshold):
     for i in range(len(prediction[0]['masks'])):
         if prediction[0]['scores'][i] > confidence:
             mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
-            mask[mask < threshold] = 0
-            mask[mask >= threshold] = 1
+            mask = mask < threshold
+            mask = mask.astype('uint8') * 255
             temp.append(mask)
 
     masks[tile_path] = temp
@@ -178,8 +178,8 @@ def image_pipeline(image_path, confidence, threshold):
     for i in range(len(prediction[0]['masks'])):
         if prediction[0]['scores'][i] > confidence:
             mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
-            mask[mask < threshold] = 0
-            mask[mask >= threshold] = 1
+            mask = mask < threshold
+            mask = mask.astype('uint8') * 255
             masks[image_path].append(mask)
 
     return masks
@@ -237,9 +237,13 @@ def main():
         logger.debug("len(masks): %s", len(masks))
         for mask_i, mask in enumerate(masks):
             logger.debug("mask.shape: %s", mask.shape)
-            plt.imshow(mask)
-            plt.savefig(f'{get_name(k)}_{mask_i}.png')
-            plt.close()
+            image = Image.fromarray(mask)
+        	image.save(f'Masks/{get_name(k)}_{mask_i}.bmp')
+        	os.chdir("Masks")
+        	cmd = f'potrace --svg {get_name(k)}_{mask_i}.bmp -o {get_name(k)}_{mask_i}.svg'
+        	os.system(cmd)
+        	os.remove(f'{get_name(k)}_{mask_i}.bmp')
+        	os.chdir("..")
 
     pass
 
