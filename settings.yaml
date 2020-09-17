@@ -1,8 +1,6 @@
 development:
   PROJECT:
-    dirs: # Provide the paths for the following three directories on your local machine:
-      cache_folder: /home/lgblkb/caches/Crop_Field_Segmentation/ # working temp folder path (leave empty)
-      data_folder: /home/lgblkb/data/Crop_Field_Segmentation/ # refer to reports/structure_of_data_folder.png
-      s2_storage_folder: /home/lgblkb/PycharmProjects/imagination/sentinel2 # refer to reports/structure_of_s2_storage_folder.png
-
-
+    dirs:
+      cache_folder: /home/lgblkb/caches/Crop_Field_Segmentation/
+      data_folder: /home/lgblkb/data/Crop_Field_Segmentation/
+      s2_storage_folder: /home/lgblkb/PycharmProjects/imagination/sentinel2

@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import more_itertools as mit
 import os
 
 import matplotlib.pyplot as plt
@@ -30,6 +33,7 @@ def get_instance_segmentation_model(num_classes):
     hidden_layer = 256
     model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask, hidden_layer, num_classes)
     return model
+
 
 model = get_instance_segmentation_model(2)
 
@@ -64,20 +68,20 @@ def convert_to_epsg(tif_file, out_tif_file):
 
 
 @logger.trace()
-def crop_tif(tif_file, width=20000, height=20000, out_dir='Temp'):
-    try:
-        os.mkdir(out_dir)
-    except FileExistsError:
-        pass
-
+def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=-1):
+    out_folder = Folder(out_folder)
     src = rasterio.open(tif_file)
-    tif_name = 0
     max_left, max_up = src.transform * (0, 0)
     max_right, max_bottom = src.transform * (src.width, src.height)
     left, up = max_left, max_up
     tile_count = 0
     while True:
+        tile_path = out_folder[f"{tile_count}.tiff"]
+        if os.path.exists(tile_path): continue
         tile_count += 1
+        if tile_count == limit:
+            break
+
         if tile_count % 25 == 0:
             logger.debug("tile_count: %s", tile_count)
 
@@ -92,8 +96,7 @@ def crop_tif(tif_file, width=20000, height=20000, out_dir='Temp'):
                          "width": out_image.shape[2],
                          "transform": out_transform})
 
-        dest = rasterio.open(os.path.join(out_dir, f"{tif_name}.tif"), "w", **out_meta)
-        tif_name += 1
+        dest = rasterio.open(tile_path, "w", **out_meta)
         dest.write(out_image)
 
         left += width / 2
@@ -144,7 +147,7 @@ def process_tile(working_dir, tile_path, confidence, threshold):
 
 @logger.trace()
 def tile_pipeline(image_path, confidence, threshold, tile_width=20000, tile_height=20000, working_dir='Temp'):
-    crop_tif(image_path, tile_width, tile_height, out_dir=working_dir)
+    crop_tif(image_path, tile_width, tile_height, out_folder=working_dir, limit=10)
     masks = {}
 
     for tile_path in os.listdir(working_dir):
@@ -219,9 +222,9 @@ def main():
     safe_folder: Folder = Folder(s2_storage_folder['unzipped_scenes'].get_filepath(
         'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE'), reactive=False, assert_exists=True)
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4, 8]]
-
     gm = GdalMan(q=True, lazy=True)
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
+    masks_folder = working_folder['Masks']
     out_filepath = working_folder['combined_bands.tiff']
     gm.gdal_merge(*band_paths, separate=True, out_filepath=out_filepath)
     logger.debug("out_filepath: %s", out_filepath)
@@ -232,21 +235,39 @@ def main():
                               tile_width=20000,
                               tile_height=20000,
                               working_dir=working_folder['tilings'])
+    working_folder['tilings'].clear()
     for k, masks, in mask_info.items():
         logger.debug("k: %s", k)
         logger.debug("len(masks): %s", len(masks))
         for mask_i, mask in enumerate(masks):
             logger.debug("mask.shape: %s", mask.shape)
             image = Image.fromarray(mask)
-        	image.save(f'Masks/{get_name(k)}_{mask_i}.bmp')
-        	os.chdir("Masks")
-        	cmd = f'potrace --svg {get_name(k)}_{mask_i}.bmp -o {get_name(k)}_{mask_i}.svg'
-        	os.system(cmd)
-        	os.remove(f'{get_name(k)}_{mask_i}.bmp')
-        	os.chdir("..")
 
-    pass
+            for opttolerance in [1, 1000, 5000, 10000, 20000, 50000]:
+                # for unit in [5, 10, 20, 50, 100]:
+                #     for alphamax in [0.5, 1, 2, 5, 10]:
+                #         for scale in [0.5, 1, 2, 5]:
+                # raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
+                raster_filepath = masks_folder[f'opt={opttolerance}.bmp']
+                image.save(raster_filepath)
+                cmd_parts = list()
+                cmd_parts.append(
+                    f"potrace -b geojson {raster_filepath} -o {Path(raster_filepath).with_suffix('.geojson')}")
+                cmd_parts.append(f'--opttolerance {opttolerance}')
+                # cmd_parts.append(f'--unit {unit}')
+                # cmd_parts.append(f'--alphamax {alphamax}')
+                # cmd_parts.append('--resolution 100')
+                # cmd_parts.append(f'--scale {scale}')
 
+                cmd = " ".join(cmd_parts)
+                logger.debug("cmd: %s", cmd)
+                os.system(cmd)
+                os.remove(raster_filepath)
+
+            return
+
+
+pass
 
 if __name__ == "__main__":
     main()
