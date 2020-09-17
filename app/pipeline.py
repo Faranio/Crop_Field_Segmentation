@@ -243,28 +243,15 @@ def main():
             logger.debug("mask.shape: %s", mask.shape)
             image = Image.fromarray(mask)
 
-            for opttolerance in [1, 1000, 5000, 10000, 20000, 50000]:
-                # for unit in [5, 10, 20, 50, 100]:
-                #     for alphamax in [0.5, 1, 2, 5, 10]:
-                #         for scale in [0.5, 1, 2, 5]:
-                # raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
-                raster_filepath = masks_folder[f'opt={opttolerance}.bmp']
-                image.save(raster_filepath)
-                cmd_parts = list()
-                cmd_parts.append(
-                    f"potrace -b geojson {raster_filepath} -o {Path(raster_filepath).with_suffix('.geojson')}")
-                cmd_parts.append(f'--opttolerance {opttolerance}')
-                # cmd_parts.append(f'--unit {unit}')
-                # cmd_parts.append(f'--alphamax {alphamax}')
-                # cmd_parts.append('--resolution 100')
-                # cmd_parts.append(f'--scale {scale}')
-
-                cmd = " ".join(cmd_parts)
-                logger.debug("cmd: %s", cmd)
-                os.system(cmd)
-                os.remove(raster_filepath)
-
-            return
+            raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
+            image.save(raster_filepath)
+            cmd = f"potrace -b geojson {raster_filepath} -o {Path(raster_filepath).with_suffix('.geojson')} &&" \
+                  f"cat {Path(raster_filepath).with_suffix('.geojson')} | simplify-geojson -t 5 > temp.geojson &&" \
+                  f"mv temp.geojson {Path(raster_filepath).with_suffix('.geojson')} &&" \
+                  f"rm {raster_filepath}"
+            logger.debug("cmd: %s", cmd)
+            os.system(cmd)
+            os.remove(raster_filepath)
 
 
 pass
