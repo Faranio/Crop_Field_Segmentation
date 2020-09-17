@@ -1,0 +1,103 @@
+[tool.poetry]
+name = "crop_field_segmentation"
+version = "0.1.0"
+description = ""
+authors = []
+repository = "git@github.com:Faranio/Crop_Field_Segmentation.git"
+
+[tool.poetry.dependencies]
+python = "~3.8"
+numpy = "^1.19.2"
+pillow = "^7.2.0"
+rasterio = "^1.1.5"
+torch = "^1.6.0"
+torchfile = "^0.1.0"
+torchsummary = "^1.5.1"
+torchvision = "^0.7.0"
+python-box = "^5.1.1"
+lgblkb-tools = "^2.0.19"
+
+
+[tool.poetry.dev-dependencies]
+tomlkit = "^0.7.0"
+python-box = { extras = ["ruamel.yaml", "toml"], version = "^5" }
+taskipy = "^1.3.0"
+dynaconf = { extras = ["all"], version = "<3.1" }
+docker = "^4.3.0"
+ansible = "^2.9.12"
+asteval = "^0.9.18"
+more-itertools = "^8.4.0"
+jinja2 = "^2.11.2"
+click = "^7.1.2"
+pyyaml = "^5.3.1"
+
+[tool.taskipy.tasks]
+commit = "task ansible encrypt all; git commit -am"
+post_commit = "task ansible decrypt all;"
+export = "poetry update --lock; poetry export --without-hashes -f requirements.txt > requirements.txt"
+export_base = "task export; cp requirements.txt requirements_base.txt"
+cache_clear = "poetry cache clear"
+
+ansible = "python provision/roles/base/files/ansible_helper.py"
+build = "task base; task docker_build"
+init = "task ansible play base --no-vault --tags init -i development"
+base = "task ansible play base --skip-tags init"
+infrastructure = "task ansible play infrastructure"
+deploy = "task ansible play deploy"
+
+
+run = "docker run -it --rm -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -v /home/lgblkb/caches/Crop_Field_Segmentation/:/home/lgblkb/caches/Crop_Field_Segmentation/ -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 python -m"
+runit = "docker run -it --rm --user root -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 bash"
+docker_build = "docker image build -t crop_field_segmentation-development:0.1.0 --target builder --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 --build-arg USERNAME=lgblkb --build-arg PROJECT_DIR=/home/lgblkb/PycharmProjects/Crop_Field_Segmentation /home/lgblkb/PycharmProjects/Crop_Field_Segmentation"
+
+[tool.project]
+encrypted = [
+    'provision/templates/**/*.yaml',
+    'provision/infrastructure_services/*.yaml'
+]
+
+[tool.project.env_data.default]
+infrastructure_services.toggle = [
+    #    'portainer',
+    #    'redis',
+    'postgis_imagination',
+    #    'postgis_yield_prediction'
+]
+[tool.project.env_data.production]
+infrastructure_services.toggle = [
+    #    'postgis_yield_prediction'
+]
+
+[tool.project.tasks]
+docker_build = """
+docker image build -t {{image_fullname}}
+                  --target {{build_target}}
+                  --build-arg USER_ID={{ansible_user_uid}}
+                  --build-arg GROUP_ID={{ansible_user_gid}}
+                  --build-arg USERNAME={{ansible_user_id}}
+                  --build-arg PROJECT_DIR={{project_folder}}
+                  {{project_folder}}
+"""
+#            --env-file .env
+run = """
+docker run -it --rm
+            -v {{project_folder}}:{{project_folder}}
+            -v {{settings.PROJECT.dirs.cache_folder}}:{{settings.PROJECT.dirs.cache_folder}}
+            -w {{project_folder}}
+            {{image_fullname}}
+            python -m
+
+"""
+
+runit = """
+docker run -it --rm
+            --user root
+            -v {{project_folder}}:{{project_folder}}
+            -w {{project_folder}}
+            {{image_fullname}}
+            bash
+"""
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

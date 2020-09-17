@@ -1,0 +1,26 @@
+development:
+  PROJECT:
+    dirs:
+      #      dataset_folder: /home/lgblkb/Data/YieldPrediction
+      s2_storage_folder: /home/lgblkb/PycharmProjects/imagination/sentinel2
+      cache_folder: /home/lgblkb/caches/Crop_Field_Segmentation/
+      data_folder: /home/lgblkb/data/Crop_Field_Segmentation/
+
+staging:
+  PROJECT:
+    dirs:
+      #      dataset_folder: /mnt/md0/Data/YieldPrediction
+      s2_storage_folder: /mnt/md0/imagination_data/sentinel2
+      cache_folder: /mnt/md0/caches/Crop_Field_Segmentation
+      data_folder: /mnt/md0/data/Crop_Field_Segmentation/
+
+production:
+  PROJECT:
+    dirs:
+      s2_storage_folder: /nfs/storage/sat_images/sentinel2
+      cache_folder: /home/egistic_db/caches/Crop_Field_Segmentation
+      data_folder: /nfs/storage/data/Crop_Field_Segmentation/
+
+
+
+

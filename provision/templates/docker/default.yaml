@@ -1,0 +1,4 @@
+default:
+  networks:
+    - name: "{{poetry_info.name}}_network"
+    - name: "devel_network"

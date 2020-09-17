@@ -1,0 +1,14 @@
+- hosts: all
+  roles:
+    - name: base
+  tasks:
+    - include_tasks: { file: 'service_tasks/service.yaml' }
+      vars: { service_options: "{{item}}" }
+      loop:
+        - name: crop_field_segmentation
+          command: python -m app.pipeline
+
+
+    - name: Greetings!!!
+      debug:
+        msg: "Deployment successfull!!!"

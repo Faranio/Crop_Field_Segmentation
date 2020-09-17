@@ -1,0 +1,1 @@
+master_project_folder: "{{playbook_dir|dirname}}"

@@ -1,0 +1,6 @@
+development:
+  PROJECT:
+    dirs:
+      cache_folder: /home/lgblkb/caches/Crop_Field_Segmentation/
+      data_folder: /home/lgblkb/data/Crop_Field_Segmentation/
+      s2_storage_folder: /home/lgblkb/PycharmProjects/imagination/sentinel2

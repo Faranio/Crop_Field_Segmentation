@@ -1,0 +1,15 @@
+- name: Read project info
+  manage_toml:
+    path: "{{master_project_folder}}/pyproject.toml"
+  register: master_toml_meta
+  delegate_to: localhost
+
+- name: Git pull
+  git:
+    repo: "{{master_toml_meta.out.tool.poetry.repository}}"
+    dest: "{{project_folder}}"
+    accept_hostkey: yes
+    key_file: "{{key_file}}"
+    force: yes
+  when: ansible_connection!='local'
+
