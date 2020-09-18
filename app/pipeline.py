@@ -245,7 +245,7 @@ def main():
             logger.debug("mask.shape: %s", mask.shape)
             image = Image.fromarray(mask)
 
-            tile_path = Path(working_folder[f"tilings/{Path(raster_filepath).with_suffix('.tif')}"])
+            tile_path = working_folder[f"tilings/{Path(raster_filepath).with_suffix('.tif')}"]
             raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
             output_path = Path(raster_filepath).with_suffix('.geojson')
             image.save(raster_filepath)
