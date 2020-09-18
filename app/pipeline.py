@@ -3,7 +3,9 @@ from pathlib import Path
 import more_itertools as mit
 import os
 
+import geopandas as gpd
 import matplotlib.pyplot as plt
+import json
 import numpy as np
 import rasterio
 import rasterio.mask
@@ -243,6 +245,7 @@ def main():
             logger.debug("mask.shape: %s", mask.shape)
             image = Image.fromarray(mask)
 
+            tile_path = Path(working_folder[f"tilings/{Path(raster_filepath).with_suffix('.tif')}"])
             raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
             output_path = Path(raster_filepath).with_suffix('.geojson')
             image.save(raster_filepath)
@@ -252,7 +255,26 @@ def main():
                   f"rm {raster_filepath}"
             logger.debug("cmd: %s", cmd)
             os.system(cmd)
+                                            
+            src = rasterio.open(tile_path)
+            image_left, image_bottom = src.bounds[:2]
 
+            with open(output_path, 'r') as file:
+                shp_file = json.load(file)
+
+            for i in range(len(shp_file['features'])):
+                for j in range(len(shp_file['features'][i]['geometry']['coordinates'])):
+                    for l in range(len(shp_file['features'][i]['geometry']['coordinates'][j])):
+                        x = shp_file['features'][i]['geometry']['coordinates'][j][l][0] * tile_width / src.shape[
+                            0] + image_left
+                        y = shp_file['features'][i]['geometry']['coordinates'][j][l][1] * tile_height / src.shape[
+                            1] + image_bottom
+                        shp_file['features'][i]['geometry']['coordinates'][j][l] = [x, y]
+
+            with open(output_path, 'w+') as f:
+                json.dump(shp_file, f, indent=2)
+
+            # remove_temp_files() - We should remove tiles in the end procedure
 
 pass
 
