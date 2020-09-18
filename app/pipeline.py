@@ -3,7 +3,9 @@ from pathlib import Path
 import more_itertools as mit
 import os
 
+import geopandas as god
 import matplotlib.pyplot as plt
+import json
 import numpy as np
 import rasterio
 import rasterio.mask
@@ -251,6 +253,27 @@ def main():
                   f"rm {raster_filepath}"
             logger.debug("cmd: %s", cmd)
             os.system(cmd)
+            
+            tile_path = Path(working_folder[f"tilings/{Path(raster_filepath).with_suffix('.tif')}"])
+            
+            src = rasterio.open(tile_path)
+            image_left, image_bottom = src.bounds[:2]
+            
+            with open(f"{Path(raster_filepath).with_suffix('.geojson')}", 'r') as file:
+                shp_file = json.load(file)
+
+            for i in range(len(shp_file['features'])):
+                for j in range(len(shp_file['features'][i]['geometry']['coordinates'])):
+                    for l in range(len(shp_file['features'][i]['geometry']['coordinates'][j])):
+                        x = shp_file['features'][i]['geometry']['coordinates'][j][l][0] * tile_width / src.shape[
+                            0] + image_left
+                        y = shp_file['features'][i]['geometry']['coordinates'][j][l][1] * tile_height / src.shape[
+                            1] + image_bottom
+                        shp_file['features'][i]['geometry']['coordinates'][j][l] = [x, y]
+
+            with open(f"{Path(raster_filepath).with_suffix('.geojson')}", 'w+') as f:
+                json.dump(shp_file, f, indent=2)
+            
             os.remove(raster_filepath)
 
 
