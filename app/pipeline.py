@@ -244,14 +244,14 @@ def main():
             image = Image.fromarray(mask)
 
             raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
+            output_path = Path(raster_filepath).with_suffix('.geojson')
             image.save(raster_filepath)
-            cmd = f"potrace -b geojson {raster_filepath} -o {Path(raster_filepath).with_suffix('.geojson')} &&" \
-                  f"cat {Path(raster_filepath).with_suffix('.geojson')} | simplify-geojson -t 5 > temp.geojson &&" \
-                  f"mv temp.geojson {Path(raster_filepath).with_suffix('.geojson')} &&" \
+            cmd = f"potrace -b geojson {raster_filepath} -o {output_path} &&" \
+                  f"cat {output_path} | simplify-geojson -t 5 > temp.geojson &&" \
+                  f"mv temp.geojson {output_path} &&" \
                   f"rm {raster_filepath}"
             logger.debug("cmd: %s", cmd)
             os.system(cmd)
-            os.remove(raster_filepath)
 
 
 pass
