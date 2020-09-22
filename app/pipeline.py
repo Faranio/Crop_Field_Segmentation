@@ -278,20 +278,32 @@ def main():
                                        
             os.remove(raster_filepath)
                                        
-    shapes = []
-
+    shape = []
+    overlap_threshold = 50
+				       
     for geojson in os.listdir(working_folder["tilings"]):
     	name, ext = os.path.splitext(geojson)
 
     	if ext == ".geojson":
-			shp_file = gpd.read_file(os.path.join(working_folder["tilings"], geojson))
+            shp_file = gpd.read_file(os.path.join(working_folder["tilings"], geojson))
+	
+            for i in range(len(shp_file.geometry)):
+                append = True
+                polygon = shape(shp_file.geometry[i])
+	    	
+                for check in shapes:
+                    area = polygon.intersection(check).area
 
-	    	for i in range(len(shp_file.geometry)):
-	    		shapes.append(shape(shp_file.geometry[i]))
+                    if area * 100 / polygon.area > overlap_threshold or area * 100 / check.area > overlap_threshold:
+                        append = False
+                        break
+
+                if append:
+                    shapes.append(polygon)
 
     	os.remove(os.path.join(working_folder["tilings"], geojson))
 
-    multipolygon = shapely.geometry.MultiPolygon(shapes)
+    multipolygon = shapely.geometry.MultiPolygon(unique_shapes)
 
     return multipolygon.wkt
 
