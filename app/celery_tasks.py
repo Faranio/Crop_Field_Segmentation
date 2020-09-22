@@ -7,9 +7,9 @@ from app.celery_worker import celery_app
 from app.pipeline import do_the_job
 
 
-@celery_app.task(name='crop_field_segmentation_salem',
-                 queue='crop_field_segmentation_salem')
-def do_crop(roi_wkt):
+@celery_app.task(name='crop_field_segmentation',
+                 queue='crop_field_segmentation')
+def crop_field_segmentation(roi_wkt, **kwargs):
     product_infos: [Dict] = celery_app.signature('acquire_clean_product',
                                                  queue='acquire_clean_product') \
         .apply_async(kwargs=dict(roi_wkt=roi_wkt)).get(disable_sync_subtasks=False)
@@ -24,7 +24,7 @@ def do_crop(roi_wkt):
     #     safe_folder_path = product_info['safe_folder_path']
     #     multipolygon = do_the_job(safe_folder_path)
     #     multipolygons.append(multipolygon)
-    return cleaned_multipolygons
+    return cleaned_multipolygons.wkt, kwargs
 
 
 @celery_app.task(name='job_runner', queue='job_runner')
