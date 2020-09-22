@@ -278,7 +278,7 @@ def main():
                                        
             os.remove(raster_filepath)
                                        
-    shape = []
+    shapes = []
     overlap_threshold = 50
 				       
     for geojson in os.listdir(working_folder["tilings"]):
