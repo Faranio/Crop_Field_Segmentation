@@ -9,6 +9,7 @@ import json
 import numpy as np
 import rasterio
 import rasterio.mask
+import shapely
 import torch
 import torchvision
 from PIL import Image
@@ -16,6 +17,7 @@ from lgblkb_tools import Folder, logger
 from lgblkb_tools.gdal_datasets import GdalMan
 from lgblkb_tools.pathify import get_name
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+from shapely.geometry import shape
 from torchvision import transforms
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
@@ -273,8 +275,25 @@ def main():
 
             with open(output_path, 'w+') as f:
                 json.dump(shp_file, f, indent=2)
+                                       
+            os.remove(raster_filepath)
+                                       
+    shapes = []
 
-            # remove_temp_files() - We should remove tiles in the end procedure
+    for geojson in os.listdir(working_folder["tilings"]):
+    	name, ext = os.path.splitext(geojson)
+
+    	if ext == ".geojson":
+			shp_file = gpd.read_file(os.path.join(working_folder["tilings"], geojson))
+
+	    	for i in range(len(shp_file.geometry)):
+	    		shapes.append(shape(shp_file.geometry[i]))
+
+    	os.remove(os.path.join(working_folder["tilings"], geojson))
+
+    multipolygon = shapely.geometry.MultiPolygon(shapes)
+
+    return multipolygon.wkt
 
 pass
 
