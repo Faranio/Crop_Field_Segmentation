@@ -16,6 +16,7 @@ torchsummary = "^1.5.1"
 torchvision = "^0.7.0"
 python-box = "^5.1.1"
 lgblkb-tools = "^2.0.19"
+celery = "^4.4.7"
 
 
 [tool.poetry.dev-dependencies]
@@ -58,9 +59,9 @@ encrypted = [
 
 [tool.project.env_data.default]
 infrastructure_services.toggle = [
-    #    'portainer',
-    #    'redis',
-    'postgis_imagination',
+#    'portainer',
+    'redis',
+    #    'postgis_imagination',
     #    'postgis_yield_prediction'
 ]
 [tool.project.env_data.production]

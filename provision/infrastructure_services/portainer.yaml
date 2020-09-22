@@ -7,3 +7,4 @@ default:
     volumes:
       - /docker_data/volumes/portainer_data:/data
       - /var/run/docker.sock:/var/run/docker.sock
+    state: started

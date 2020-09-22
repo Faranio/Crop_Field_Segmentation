@@ -220,11 +220,14 @@ def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_wi
     return masks
 
 
+model_path = data_folder['model']['MODEL_7.pt']
+
+
 @logger.trace()
-def main():
-    model_path = data_folder['model']['MODEL_7.pt']
-    safe_folder: Folder = Folder(s2_storage_folder['unzipped_scenes'].get_filepath(
-        'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE'), reactive=False, assert_exists=True)
+def do_the_job(safe_folder_path):
+    # safe_folder: Folder = Folder(s2_storage_folder['unzipped_scenes'].get_filepath(
+    #     'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE'), reactive=False, assert_exists=True)
+    safe_folder = Folder(safe_folder_path)
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4, 8]]
     gm = GdalMan(q=True, lazy=True)
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
@@ -257,7 +260,7 @@ def main():
                   f"rm {raster_filepath}"
             logger.debug("cmd: %s", cmd)
             os.system(cmd)
-                                            
+
             src = rasterio.open(tile_path)
             image_left, image_bottom = src.bounds[:2]
 
@@ -275,22 +278,22 @@ def main():
 
             with open(output_path, 'w+') as f:
                 json.dump(shp_file, f, indent=2)
-                                       
+
             os.remove(raster_filepath)
-                                       
+
     shapes = []
     overlap_threshold = 50
-				       
-    for geojson in os.listdir(working_folder["tilings"]):
-    	name, ext = os.path.splitext(geojson)
 
-    	if ext == ".geojson":
+    for geojson in os.listdir(working_folder["tilings"]):
+        name, ext = os.path.splitext(geojson)
+
+        if ext == ".geojson":
             shp_file = gpd.read_file(os.path.join(working_folder["tilings"], geojson))
-	
+
             for i in range(len(shp_file.geometry)):
                 append = True
                 polygon = shape(shp_file.geometry[i])
-	    	
+
                 for check in shapes:
                     area = polygon.intersection(check).area
 
@@ -301,11 +304,16 @@ def main():
                 if append:
                     shapes.append(polygon)
 
-    	os.remove(os.path.join(working_folder["tilings"], geojson))
+        os.remove(os.path.join(working_folder["tilings"], geojson))
 
     multipolygon = shapely.geometry.MultiPolygon(unique_shapes)
 
     return multipolygon.wkt
+
+
+def main():
+    pass
+
 
 pass
 

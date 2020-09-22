@@ -1,6 +1,47 @@
 development:
+  CELERY:
+    config:
+      accept_content:
+      - json
+      acks_on_failure_or_timeout: false
+      broker_transport_options:
+        visibility_timeout: 86400
+      broker_url: redis://lgblkb:Dikalyaka2!@redis:6379
+      enable_utc: true
+      imports:
+      - app.celery_tasks
+      result_accept_content:
+      - json
+      result_backend: redis://lgblkb:Dikalyaka2!@redis:6379
+      result_persistent: false
+      result_serializer: json
+      task_acks_late: false
+      task_acks_on_failure_or_timeout: false
+      task_always_eager: false
+      task_create_missing_queues: true
+      task_default_priority: 5
+      task_ignore_result: false
+      task_inherit_parent_priority: true
+      task_queue_max_priority: 10
+      task_remote_tracebacks: true
+      task_send_sent_event: true
+      task_serializer: json
+      task_soft_time_limit: null
+      task_time_limit: null
+      task_track_started: true
+      timezone: Asia/Almaty
+      worker_concurrency: 1
+      worker_max_tasks_per_child: 100
+      worker_prefetch_multiplier: 1
+      worker_send_task_events: true
+    task_base_name: yield_pred
   PROJECT:
     dirs:
       cache_folder: /home/lgblkb/caches/Crop_Field_Segmentation/
       data_folder: /home/lgblkb/data/Crop_Field_Segmentation/
       s2_storage_folder: /home/lgblkb/PycharmProjects/imagination/sentinel2
+  REDIS:
+    host: redis
+    password: Dikalyaka2!
+    port: 6379
+    username: lgblkb
