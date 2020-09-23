@@ -245,32 +245,33 @@ def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20
                 json.dump(shp_file, f, indent=2)
 
 
+def remove_overlaps(geometry: gpd.GeoSeries, shapes, overlap_threshold=50):
+    for i in range(len(geometry)):
+        append = True
+        polygon = shape(geometry[i])
+
+        for check in shapes:
+            area = polygon.intersection(check).area
+
+            if area * 100 / polygon.area > overlap_threshold or area * 100 / check.area > overlap_threshold:
+                append = False
+                break
+
+        if append:
+            shapes.append(polygon)
+    return shapes
+
+
 @logger.trace()
 def get_wkt(folder):
     shapes = []
-
-    overlap_threshold = 50
 
     for geojson in os.listdir(folder):
         name, ext = os.path.splitext(geojson)
 
         if ext == ".geojson":
             shp_file = gpd.read_file(os.path.join(folder, geojson))
-
-            for i in range(len(shp_file.geometry)):
-                append = True
-                polygon = shape(shp_file.geometry[i])
-
-                for check in shapes:
-                    area = polygon.intersection(check).area
-
-                    if area * 100 / polygon.area > overlap_threshold or area * 100 / check.area > overlap_threshold:
-                        append = False
-                        break
-
-                if append:
-                    shapes.append(polygon)
-
+            shapes = remove_overlaps(shp_file.geometry, shapes, overlap_threshold=50)
     multipolygon = shapely.geometry.MultiPolygon(shapes)
     return multipolygon.wkt
 
@@ -299,11 +300,15 @@ def segment_safe_product(safe_folder_path):
                               tile_height=tile_height,
                               working_dir=working_folder['tilings'])
 
-    perform_modifications(mask_info, working_folder=working_folder, masks_folder=masks_folder, tile_width=tile_width, tile_height=tile_height)
+    perform_modifications(mask_info,
+                          working_folder=working_folder,
+                          masks_folder=masks_folder,
+                          tile_width=tile_width,
+                          tile_height=tile_height)
     multipolygon = get_wkt(folder=working_folder["tilings"])
     working_folder['tilings'].clear()
 
-    return multipolygon.wkt
+    return multipolygon
 
 
 pass
