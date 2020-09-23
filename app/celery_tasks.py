@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import shapely.geometry as shg
 import shapely.wkt as shwkt
 import geopandas as gpd
@@ -34,5 +36,5 @@ def crop_field_segmentation(roi_wkt, **kwargs):
 @celery_app.task(name='image_segmentor', queue='image_segmentor')
 def image_segmentor(safe_folder_path):
     logger.debug("safe_folder_path: %s", safe_folder_path)
-    safe_folder_path = s2_storage_folder.path + safe_folder_path
+    safe_folder_path = Path(s2_storage_folder.path).joinpath(safe_folder_path)
     return segment_safe_product(safe_folder_path).wkt
