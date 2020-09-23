@@ -1,11 +1,8 @@
+import json
+import os
 from pathlib import Path
 
-import more_itertools as mit
-import os
-
 import geopandas as gpd
-import matplotlib.pyplot as plt
-import json
 import numpy as np
 import rasterio
 import rasterio.mask
@@ -214,38 +211,38 @@ def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_wi
 def perform_modifications(mask_info, working_folder, masks_folder):
     for k, masks, in mask_info.items():
         logger.debug("k: %s", k)
-    logger.debug("len(masks): %s", len(masks))
-    for mask_i, mask in enumerate(masks):
-        logger.debug("mask.shape: %s", mask.shape)
-        image = Image.fromarray(mask)
+        logger.debug("len(masks): %s", len(masks))
+        for mask_i, mask in enumerate(masks):
+            logger.debug("mask.shape: %s", mask.shape)
+            image = Image.fromarray(mask)
 
-        raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
-        tile_path = working_folder[f"tilings/{get_name(k)}.tiff"]
-        output_path = Path(raster_filepath).with_suffix('.geojson')
-        image.save(raster_filepath)
-        cmd = f"potrace -b geojson {raster_filepath} -o {output_path} && " \
-              f"cat {output_path} | simplify-geojson -t 5 > temp.geojson && " \
-              f"mv temp.geojson {output_path}"
-        logger.debug("cmd: %s", cmd)
-        os.system(cmd)
+            raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
+            tile_path = working_folder[f"tilings/{get_name(k)}.tiff"]
+            output_path = Path(raster_filepath).with_suffix('.geojson')
+            image.save(raster_filepath)
+            cmd = f"potrace -b geojson {raster_filepath} -o {output_path} && " \
+                  f"cat {output_path} | simplify-geojson -t 5 > temp.geojson && " \
+                  f"mv temp.geojson {output_path}"
+            logger.debug("cmd: %s", cmd)
+            os.system(cmd)
 
-        src = rasterio.open(tile_path)
-        image_left, image_bottom = src.bounds[:2]
+            src = rasterio.open(tile_path)
+            image_left, image_bottom = src.bounds[:2]
 
-        with open(output_path, 'r') as file:
-            shp_file = json.load(file)
+            with open(output_path, 'r') as file:
+                shp_file = json.load(file)
 
-        for i in range(len(shp_file['features'])):
-            for j in range(len(shp_file['features'][i]['geometry']['coordinates'])):
-                for l in range(len(shp_file['features'][i]['geometry']['coordinates'][j])):
-                    x = shp_file['features'][i]['geometry']['coordinates'][j][l][0] * tile_width / src.shape[
-                        0] + image_left
-                    y = shp_file['features'][i]['geometry']['coordinates'][j][l][1] * tile_height / src.shape[
-                        1] + image_bottom
-                    shp_file['features'][i]['geometry']['coordinates'][j][l] = [x, y]
+            for i in range(len(shp_file['features'])):
+                for j in range(len(shp_file['features'][i]['geometry']['coordinates'])):
+                    for l in range(len(shp_file['features'][i]['geometry']['coordinates'][j])):
+                        x = shp_file['features'][i]['geometry']['coordinates'][j][l][0] * tile_width / src.shape[
+                            0] + image_left
+                        y = shp_file['features'][i]['geometry']['coordinates'][j][l][1] * tile_height / src.shape[
+                            1] + image_bottom
+                        shp_file['features'][i]['geometry']['coordinates'][j][l] = [x, y]
 
-        with open(output_path, 'w+') as f:
-            json.dump(shp_file, f, indent=2)
+            with open(output_path, 'w+') as f:
+                json.dump(shp_file, f, indent=2)
 
 
 @logger.trace()
