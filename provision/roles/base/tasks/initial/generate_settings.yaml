@@ -12,8 +12,8 @@
     data_path: 'templates/settings.yaml'
     merge_items: [ "{{infra}}" ]
     set_to: settings
-- debug: msg="{{settings}}"
-- fail:
+#- debug: msg="{{settings}}"
+#- fail:
 - copy:
     content: "{{'out={e:d}'|eval(d=settings,e=env_name)|to_nice_yaml(indent=2)}}"
     dest: "{{project_folder}}/settings.yaml"

@@ -12,8 +12,10 @@
     file: "{{data_path}}"
     name: data
   when: data_path is defined
+
 #- debug: msg="{{{'the_data':(rddi.data|bool)|ternary(rddi.data,data)}}}"
 #- debug: msg="{{{'merge_items':rddi.merge_items}}}"
+
 - eval:
     expression: |
       data = Box([kv for kv in data.items() if kv[0] in project_envs + ['default']])
