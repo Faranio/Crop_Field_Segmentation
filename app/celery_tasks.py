@@ -47,6 +47,8 @@ meta = {pformat(kwargs)}
 
 @celery_app.task(name='image_segmentor', queue='image_segmentor')
 def image_segmentor(safe_folder_path):
+    logger.debug("safe_folder_path: %s", safe_folder_path)
+    logger.debug("s2_storage_folder: %s", s2_storage_folder)
     safe_folder_path = Path(s2_storage_folder.path).joinpath(safe_folder_path)
     logger.debug("safe_folder_path: %s", safe_folder_path)
     return segment_safe_product(safe_folder_path).wkt
