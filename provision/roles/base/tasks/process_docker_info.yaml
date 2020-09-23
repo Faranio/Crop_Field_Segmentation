@@ -3,34 +3,38 @@
       config_name: "{{config_name}}"
       merge_items: "{{merge_items|default([])}}"
 
-- include_tasks: read_dyna_data.yaml
+- name: Collect configs data
+  include_tasks: read_dyna_data.yaml
   vars:
-    merge_items: []
+    merge_items: [ ]
     data_path: '{{pdi.config_name}}/{{config_file}}.yaml'
     collect_to: "{{pdi.config_name}}"
   loop: "{{project_data[pdi.config_name].toggle}}"
-  loop_control: {loop_var: config_file}
+  loop_control: { loop_var: config_file }
 
-- include_tasks: read_dyna_data.yaml
-  vars:
-    data: "{{ {env_name:container_info} }}"
-    data_name: "container_info_{{idx}}"
-    collect_to: "{{pdi.config_name}}_infos"
-    merge_items: "{{pdi.merge_items}}"
-  loop: >-
-    {{"list(mit.flatten([list(d.values()) for d in ds.values()]))"
-    |eval(ds=lookup('vars',pdi.config_name))}}
-  loop_control:
-    index_var: idx
-    label: "{{data_name}}"
-    loop_var: container_info
+- block:
+    - name: Merge configs data
+      include_tasks: read_dyna_data.yaml
+      vars:
+        data: "{{ {env_name:container_info} }}"
+        data_name: "container_info_{{idx}}"
+        collect_to: "{{pdi.config_name}}_infos"
+        merge_items: "{{pdi.merge_items}}"
+      loop: >-
+        {{"list(mit.flatten([list(d.values()) for d in ds.values()]))"
+        |eval(ds=lookup('vars',pdi.config_name))}}
+      loop_control:
+        index_var: idx
+        label: "{{data_name}}"
+        loop_var: container_info
 
-#- set_fact:
-#    "{{pdi.config_name}}_infos": >-
-#      {{'list(infos.values())'|eval(infos=lookup('vars',pdi.config_name+'_infos'))}}
-#  loop: "{{lookup('vars',pdi.config_name+'_infos')}}"
-- include_role: { name: base, tasks_from: run_container.yaml }
-  vars: { info: "{{container_info}}" }
-  loop: >-
-    {{'list(infos.values())'|eval(infos=lookup('vars',pdi.config_name+'_infos'))}}
-  loop_control: {loop_var: container_info}
+    #- set_fact:
+    #    "{{pdi.config_name}}_infos": >-
+    #      {{'list(infos.values())'|eval(infos=lookup('vars',pdi.config_name+'_infos'))}}
+    #  loop: "{{lookup('vars',pdi.config_name+'_infos')}}"
+    - include_role: { name: base, tasks_from: run_container.yaml }
+      vars: { info: "{{container_info}}" }
+      loop: >-
+        {{'list(infos.values())'|eval(infos=lookup('vars',pdi.config_name+'_infos'))}}
+      loop_control: { loop_var: container_info }
+  when: "{{lookup('vars',pdi.config_name,default=False)|bool}}"
