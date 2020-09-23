@@ -194,7 +194,7 @@ def image_pipeline(image_path, confidence, threshold):
 
 @logger.trace()
 def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000,
-                  working_dir='Temp'):  # <----- previously this function was named main()
+                  working_dir='Temp'):
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
@@ -207,67 +207,63 @@ def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_wi
     else:
         masks = image_pipeline(image_path, confidence, threshold)
 
-    # remove_temp_files()
-
     return masks
 
 
-model_path = data_folder['model']['MODEL_7.pt']
-
-
 @logger.trace()
-def perform_moditifications(mask_info, working_folder=working_folder, masks_folder=masks_folder):
-	for k, masks, in mask_info.items():
+def perform_modifications(mask_info, working_folder, masks_folder):
+    for k, masks, in mask_info.items():
         logger.debug("k: %s", k)
-        logger.debug("len(masks): %s", len(masks))
-        for mask_i, mask in enumerate(masks):
-            logger.debug("mask.shape: %s", mask.shape)
-            image = Image.fromarray(mask)
+    logger.debug("len(masks): %s", len(masks))
+    for mask_i, mask in enumerate(masks):
+        logger.debug("mask.shape: %s", mask.shape)
+        image = Image.fromarray(mask)
 
-            raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
-            tile_path = working_folder[f"tilings/{get_name(k)}.tiff"]
-            output_path = Path(raster_filepath).with_suffix('.geojson')
-            image.save(raster_filepath)
-            cmd = f"potrace -b geojson {raster_filepath} -o {output_path} && " \
-                  f"cat {output_path} | simplify-geojson -t 5 > temp.geojson && " \
-                  f"mv temp.geojson {output_path}"
-            logger.debug("cmd: %s", cmd)
-            os.system(cmd)
-                                            
-            src = rasterio.open(tile_path)
-            image_left, image_bottom = src.bounds[:2]
+        raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
+        tile_path = working_folder[f"tilings/{get_name(k)}.tiff"]
+        output_path = Path(raster_filepath).with_suffix('.geojson')
+        image.save(raster_filepath)
+        cmd = f"potrace -b geojson {raster_filepath} -o {output_path} && " \
+              f"cat {output_path} | simplify-geojson -t 5 > temp.geojson && " \
+              f"mv temp.geojson {output_path}"
+        logger.debug("cmd: %s", cmd)
+        os.system(cmd)
 
-            with open(output_path, 'r') as file:
-                shp_file = json.load(file)
+        src = rasterio.open(tile_path)
+        image_left, image_bottom = src.bounds[:2]
 
-            for i in range(len(shp_file['features'])):
-                for j in range(len(shp_file['features'][i]['geometry']['coordinates'])):
-                    for l in range(len(shp_file['features'][i]['geometry']['coordinates'][j])):
-                        x = shp_file['features'][i]['geometry']['coordinates'][j][l][0] * tile_width / src.shape[
-                            0] + image_left
-                        y = shp_file['features'][i]['geometry']['coordinates'][j][l][1] * tile_height / src.shape[
-                            1] + image_bottom
-                        shp_file['features'][i]['geometry']['coordinates'][j][l] = [x, y]
+        with open(output_path, 'r') as file:
+            shp_file = json.load(file)
 
-            with open(output_path, 'w+') as f:
-                json.dump(shp_file, f, indent=2)
+        for i in range(len(shp_file['features'])):
+            for j in range(len(shp_file['features'][i]['geometry']['coordinates'])):
+                for l in range(len(shp_file['features'][i]['geometry']['coordinates'][j])):
+                    x = shp_file['features'][i]['geometry']['coordinates'][j][l][0] * tile_width / src.shape[
+                        0] + image_left
+                    y = shp_file['features'][i]['geometry']['coordinates'][j][l][1] * tile_height / src.shape[
+                        1] + image_bottom
+                    shp_file['features'][i]['geometry']['coordinates'][j][l] = [x, y]
+
+        with open(output_path, 'w+') as f:
+            json.dump(shp_file, f, indent=2)
 
 
 @logger.trace()
 def get_wkt(folder):
-	shapes = []
-    overlap_threshold = 50
-				       
-    for geojson in os.listdir(folder):
-    	name, ext = os.path.splitext(geojson)
+    shapes = []
 
-    	if ext == ".geojson":
+    overlap_threshold = 50
+
+    for geojson in os.listdir(folder):
+        name, ext = os.path.splitext(geojson)
+
+        if ext == ".geojson":
             shp_file = gpd.read_file(os.path.join(working_folder["tilings"], geojson))
-	
+
             for i in range(len(shp_file.geometry)):
                 append = True
                 polygon = shape(shp_file.geometry[i])
-	    	
+
                 for check in shapes:
                     area = polygon.intersection(check).area
 
@@ -283,10 +279,11 @@ def get_wkt(folder):
 
 
 @logger.trace()
-def field_segmentation(safe_folder_path):
+def segment_safe_product(safe_folder_path):
     # safe_folder: Folder = Folder(s2_storage_folder['unzipped_scenes'].get_filepath(
     #     'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE'), reactive=False, assert_exists=True)
     safe_folder = Folder(safe_folder_path)
+    model_path = data_folder['model']['MODEL_7.pt']
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4, 8]]
     gm = GdalMan(q=True, lazy=True)
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
@@ -294,7 +291,7 @@ def field_segmentation(safe_folder_path):
     out_filepath = working_folder['combined_bands.tiff']
     gm.gdal_merge(*band_paths, separate=True, out_filepath=out_filepath)
     logger.debug("out_filepath: %s", out_filepath)
-    
+
     tile_width = 20000
     tile_height = 20000
 
@@ -304,15 +301,23 @@ def field_segmentation(safe_folder_path):
                               tile_width=tile_width,
                               tile_height=tile_height,
                               working_dir=working_folder['tilings'])
-    
+
     perform_modifications(mask_info, working_folder=working_folder, masks_folder=masks_folder)
     multipolygon = get_wkt(folder=working_folder["tilings"])
     working_folder['tilings'].clear()
 
     return multipolygon.wkt
 
+
 pass
 
+
+def main():
+    safe_folder_path = s2_storage_folder['unzipped_scenes'].get_filepath(
+        'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE')
+    segment_safe_product(safe_folder_path)
+    pass
+
+
 if __name__ == "__main__":
-    field_segmentation(s2_storage_folder['unzipped_scenes'].get_filepath(
-+        'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE'))
+    main()
