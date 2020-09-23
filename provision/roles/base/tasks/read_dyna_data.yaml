@@ -49,8 +49,12 @@
     out:
       - out_data
       - fact_key
+      - env_data
+      - data
   register: eval_meta
 #- debug: msg="{{{eval_meta.fact_key:eval_meta.out_data}}}"
+#- debug: msg="{{{'env_data':eval_meta.env_data}}}"
+#- debug: msg="{{{'data':eval_meta.data}}}"
 - set_fact:
     "{{eval_meta.fact_key}}": "{{eval_meta.out_data}}"
 

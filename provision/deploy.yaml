@@ -8,20 +8,10 @@
         #        - name: crop_field_segmentation
         #          command: python -m app.pipeline
 
-        - name: salem_worker
+        - name: image_segmentor
           celery_worker:
-            queues: crop_field_segmentation_salem
-
-        - name: job_runner
+        - name: crop_field_segmentation
           celery_worker:
-            queues: job_runner
-            concurrency: 5
-
-        - name: crop_segmentation_tester
-          command: python -m app.tester
-
-
-
 
     - name: Greetings!!!
       debug:
