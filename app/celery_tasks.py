@@ -16,7 +16,7 @@ from app.celery_worker import celery_app
 from app.pipeline import segment_safe_product, remove_overlaps
 
 
-def celery_hook(payload, task_name, queue, signature_options=None, apply_async=None):
+def celery_hook(payload, task_name, queue='', signature_options=None, apply_async=None):
     queue = queue or task_name
     celery_app.signature(task_name, queue=queue, **(signature_options or {})) \
         .apply_async(**dict(dict(serializer='json'), **(apply_async or {})), kwargs=payload)
@@ -47,6 +47,6 @@ meta = {pformat(kwargs)}
 
 @celery_app.task(name='image_segmentor', queue='image_segmentor')
 def image_segmentor(safe_folder_path):
-    logger.debug("safe_folder_path: %s", safe_folder_path)
     safe_folder_path = Path(s2_storage_folder.path).joinpath(safe_folder_path)
+    logger.debug("safe_folder_path: %s", safe_folder_path)
     return segment_safe_product(safe_folder_path).wkt

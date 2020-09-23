@@ -1,6 +1,10 @@
 - hosts: all
   roles:
     - name: base
+  vars:
+    build_docker_image: no
+    show_container_details: no
+    launch_container: yes
   tasks:
     - include_tasks: { file: 'service_tasks/service.yaml' }
       vars: { service_options: "{{item}}" }
