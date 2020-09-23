@@ -1,4 +1,5 @@
 from pathlib import Path
+from pprint import pformat
 
 import shapely.geometry as shg
 import shapely.wkt as shwkt
@@ -8,6 +9,7 @@ import celery
 from typing import Dict
 
 from lgblkb_tools import logger
+from lgblkb_tools.telegram_notify import egistic_notify
 
 from app.app import s2_storage_folder
 from app.celery_worker import celery_app
@@ -38,6 +40,9 @@ def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
     #     multipolygons.append(multipolygon)
     if hook:
         celery_hook(dict(fields=out.wkt, **kwargs), **hook)
+    egistic_notify.send_message(f"""Crop field segmentation done:
+meta = {pformat(kwargs)}
+""")
 
 
 @celery_app.task(name='image_segmentor', queue='image_segmentor')
