@@ -306,7 +306,7 @@ def segment_safe_product(safe_folder_path):
                           tile_width=tile_width,
                           tile_height=tile_height)
     multipolygon = get_wkt(folder=working_folder["tilings"])
-    working_folder['tilings'].clear()
+    working_folder.clear()
 
     return multipolygon
 
