@@ -193,7 +193,7 @@ def image_pipeline(image_path, confidence, threshold):
 def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000,
                   working_dir='Temp'):
     logger.debug('1')
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(model_path))
     logger.debug('2')
     model.to(device)
     logger.debug('3')
