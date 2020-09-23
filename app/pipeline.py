@@ -208,7 +208,7 @@ def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_wi
 
 
 @logger.trace()
-def perform_modifications(mask_info, working_folder, masks_folder):
+def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20000, tile_height=20000):
     for k, masks, in mask_info.items():
         logger.debug("k: %s", k)
         logger.debug("len(masks): %s", len(masks))
@@ -255,7 +255,7 @@ def get_wkt(folder):
         name, ext = os.path.splitext(geojson)
 
         if ext == ".geojson":
-            shp_file = gpd.read_file(os.path.join(working_folder["tilings"], geojson))
+            shp_file = gpd.read_file(os.path.join(folder, geojson))
 
             for i in range(len(shp_file.geometry)):
                 append = True
@@ -299,7 +299,7 @@ def segment_safe_product(safe_folder_path):
                               tile_height=tile_height,
                               working_dir=working_folder['tilings'])
 
-    perform_modifications(mask_info, working_folder=working_folder, masks_folder=masks_folder)
+    perform_modifications(mask_info, working_folder=working_folder, masks_folder=masks_folder, tile_width=tile_width, tile_height=tile_height)
     multipolygon = get_wkt(folder=working_folder["tilings"])
     working_folder['tilings'].clear()
 
