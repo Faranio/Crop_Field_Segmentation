@@ -76,7 +76,7 @@ def convert_to_epsg(tif_file, out_tif_file):
 
 
 @logger.trace()
-def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=1000):
+def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=-1):
     logger.debug("tif_file: %s", tif_file)
     out_folder = Folder(out_folder)
     src = rasterio.open(tif_file)
