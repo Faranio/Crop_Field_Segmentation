@@ -76,7 +76,7 @@ def convert_to_epsg(tif_file, out_tif_file):
 
 
 @logger.trace()
-def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=1000):
+def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=-1):
     logger.debug("tif_file: %s", tif_file)
     out_folder = Folder(out_folder)
     src = rasterio.open(tif_file)
@@ -119,7 +119,7 @@ def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=1000)
 
 @logger.trace()
 def process_tile(working_dir, tile_path, confidence, threshold):
-    logger.debug("working_dir: %s",working_dir)
+    logger.debug("working_dir: %s", working_dir)
     logger.debug("tile_path: %s", tile_path)
     masks = {}
     uint8_type = True
@@ -128,23 +128,31 @@ def process_tile(working_dir, tile_path, confidence, threshold):
 
     if tile.dtypes[0] != 'uint8':
         uint8_type = False
-
+    logger.debug('Reading bands...')
     array = np.dstack((tile.read(4), tile.read(3), tile.read(2)))
     array = np.nan_to_num(array)
 
     if not uint8_type:
+        logger.debug('Converting to uint8_type...')
         array = array.astype(np.float32, order='C') / 32768.0
         array = (array * 255 / np.max(array)).astype('uint8')
 
-    image = Image.fromarray(array)
-    tensor = transforms.ToTensor()(image)
+    # logger.debug('Converting to PIL image...')
+    # image = Image.fromarray(array)
+    logger.debug('Converting to tensor array...')
+    tensor = transforms.ToTensor()(array)
+    logger.debug('Tensor is ready.')
 
     with torch.no_grad():
+        logger.debug('Making predictions...')
         prediction = model([tensor.to(device)])
+        logger.debug('Done).')
 
     temp = []
-
-    for i in range(len(prediction[0]['masks'])):
+    total_mask_count = len(prediction[0]['masks'])
+    for i in range(total_mask_count):
+        if i % int(total_mask_count / 10) == 0:
+            logger.debug("mask_i: %s", i)
         if prediction[0]['scores'][i] > confidence:
             mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
             mask = mask < threshold
@@ -157,7 +165,7 @@ def process_tile(working_dir, tile_path, confidence, threshold):
 
 @logger.trace()
 def tile_pipeline(image_path, confidence, threshold, tile_width=20000, tile_height=20000, working_dir='Temp'):
-    crop_tif(image_path, tile_width, tile_height, out_folder=working_dir, limit=10)
+    crop_tif(image_path, tile_width, tile_height, out_folder=working_dir)
     masks = {}
 
     for tile_path in os.listdir(working_dir):

@@ -19,8 +19,7 @@ def celery_hook(payload, task_name, queue='', signature_options=None, apply_asyn
         .apply_async(**dict(dict(serializer='json'), **(apply_async or {})), kwargs=payload)
 
 
-@celery_app.task(name='crop_field_segmentation',
-                 queue='crop_field_segmentation')
+@celery_app.task(name='crop_field_segmentation', queue='crop_field_segmentation')
 def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
     product_infos: [Dict] = celery_app.signature('acquire_roi_products',
                                                  queue='acquire_roi_products') \
