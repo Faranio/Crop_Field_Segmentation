@@ -36,7 +36,14 @@ def get_instance_segmentation_model(num_classes):
     return model
 
 
+model_path = data_folder['model']['MODEL_7.pt']
 model = get_instance_segmentation_model(2)
+logger.debug('Sending model to CPU...')
+model.to(device)
+logger.debug('Loading model state into memory...')
+model.load_state_dict(torch.load(model_path, map_location=device))
+model.eval()
+logger.debug('Ready!')
 
 
 @logger.trace()
@@ -190,21 +197,9 @@ def image_pipeline(image_path, confidence, threshold):
 
 
 @logger.trace()
-def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000,
-                  working_dir='Temp'):
-    logger.debug('1')
-    model.to(device)
-    logger.debug('2')
-    temp = torch.load(model_path)
-    logger.debug('3')
-    model.load_state_dict(temp)
-    logger.debug('4')
-    model.eval()
-    logger.debug('5')
+def get_mask_info(image_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000, working_dir='Temp'):
     convert_to_epsg(image_path, image_path)
-    logger.debug('6')
     image = rasterio.open(image_path)
-    logger.debug('7')
     if image.bounds[2] - image.bounds[0] > tile_width or image.bounds[3] - image.bounds[1] > tile_height:
         masks = tile_pipeline(image_path, confidence, threshold, tile_width, tile_height, working_dir=working_dir)
     else:
@@ -286,7 +281,6 @@ def segment_safe_product(safe_folder_path):
     # safe_folder: Folder = Folder(s2_storage_folder['unzipped_scenes'].get_filepath(
     #     'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE'), reactive=False, assert_exists=True)
     safe_folder = Folder(safe_folder_path)
-    model_path = data_folder['model']['MODEL_7.pt']
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4, 8]]
     gm = GdalMan(q=True, lazy=True)
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
@@ -300,7 +294,6 @@ def segment_safe_product(safe_folder_path):
 
     mask_info = get_mask_info(image_path=out_filepath,
                               confidence=0.6,
-                              model_path=model_path,
                               tile_width=tile_width,
                               tile_height=tile_height,
                               working_dir=working_folder['tilings'])
