@@ -1,13 +1,10 @@
-from pathlib import Path
 from pprint import pformat
-
-import shapely.geometry as shg
-import shapely.wkt as shwkt
-import geopandas as gpd
-import more_itertools as mit
-import celery
 from typing import Dict
 
+import celery
+import geopandas as gpd
+import shapely.geometry as shg
+import shapely.wkt as shwkt
 from lgblkb_tools import logger
 from lgblkb_tools.telegram_notify import egistic_notify
 

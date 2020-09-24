@@ -77,6 +77,7 @@ def convert_to_epsg(tif_file, out_tif_file):
 
 @logger.trace()
 def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=1000):
+    logger.debug("tif_file: %s", tif_file)
     out_folder = Folder(out_folder)
     src = rasterio.open(tif_file)
     max_left, max_up = src.transform * (0, 0)
@@ -85,13 +86,12 @@ def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=1000)
     tile_count = 0
     while True:
         tile_path = out_folder[f"{tile_count}.tiff"]
-        if os.path.exists(tile_path): continue
         tile_count += 1
-        if tile_count == limit:
-            break
-
         if tile_count % 25 == 0:
             logger.debug("tile_count: %s", tile_count)
+        if tile_count == limit:
+            break
+        if os.path.exists(tile_path): continue
 
         temp = [{'type': 'Polygon', 'coordinates': [[(left, up, 0.0),
                                                      (left + width, up, 0.0),
@@ -119,9 +119,11 @@ def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=1000)
 
 @logger.trace()
 def process_tile(working_dir, tile_path, confidence, threshold):
+    logger.debug("working_dir: %s",working_dir)
     logger.debug("tile_path: %s", tile_path)
     masks = {}
     uint8_type = True
+    logger.debug('Opening tile...')
     tile = rasterio.open(os.path.join(working_dir, tile_path))
 
     if tile.dtypes[0] != 'uint8':
