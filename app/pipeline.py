@@ -22,6 +22,7 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 from app.app import s2_storage_folder, data_folder, cache_folder
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+logger.debug("device: %s", device)
 os.environ['TORCH_HOME'] = data_folder.path
 
 
@@ -131,6 +132,7 @@ def process_tile(working_dir, tile_path, confidence, threshold):
     logger.debug('Reading bands...')
     array = np.dstack((tile.read(4), tile.read(3), tile.read(2)))
     array = np.nan_to_num(array)
+    if np.max(array) == 0: return []
 
     if not uint8_type:
         logger.debug('Converting to uint8_type...')
@@ -138,9 +140,9 @@ def process_tile(working_dir, tile_path, confidence, threshold):
         array = (array * 255 / np.max(array)).astype('uint8')
 
     # logger.debug('Converting to PIL image...')
-    # image = Image.fromarray(array)
+    image = Image.fromarray(array)
     logger.debug('Converting to tensor array...')
-    tensor = transforms.ToTensor()(array)
+    tensor = transforms.ToTensor()(image)
     logger.debug('Tensor is ready.')
 
     with torch.no_grad():

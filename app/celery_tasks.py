@@ -46,4 +46,4 @@ meta = {pformat(kwargs)}
 def image_segmentor(safe_folder_path):
     safe_folder_path = s2_storage_folder.path + safe_folder_path
     logger.debug("safe_folder_path: %s", safe_folder_path)
-    return segment_safe_product(safe_folder_path).wkt
+    return segment_safe_product(safe_folder_path)
