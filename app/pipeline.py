@@ -193,16 +193,18 @@ def image_pipeline(image_path, confidence, threshold):
 def get_mask_info(image_path, model_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000,
                   working_dir='Temp'):
     logger.debug('1')
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    logger.debug('2')
     model.to(device)
+    logger.debug('2')
+    temp = torch.load(model_path)
     logger.debug('3')
-    model.eval()
+    model.load_state_dict(temp)
     logger.debug('4')
-    convert_to_epsg(image_path, image_path)
+    model.eval()
     logger.debug('5')
-    image = rasterio.open(image_path)
+    convert_to_epsg(image_path, image_path)
     logger.debug('6')
+    image = rasterio.open(image_path)
+    logger.debug('7')
     if image.bounds[2] - image.bounds[0] > tile_width or image.bounds[3] - image.bounds[1] > tile_height:
         masks = tile_pipeline(image_path, confidence, threshold, tile_width, tile_height, working_dir=working_dir)
     else:
