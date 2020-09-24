@@ -62,5 +62,7 @@ USER ${USERNAME}
 FROM base as production
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    nano
 
 
