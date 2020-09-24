@@ -21,8 +21,8 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
 from app.app import s2_storage_folder, data_folder, cache_folder
 
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-logger.debug("device: %s", device)
+# device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+# logger.debug("device: %s", device)
 os.environ['TORCH_HOME'] = data_folder.path
 
 
@@ -38,13 +38,6 @@ def get_instance_segmentation_model(num_classes):
 
 
 model_path = data_folder['model']['MODEL_7.pt']
-model = get_instance_segmentation_model(2)
-logger.debug('Sending model to CPU...')
-model.to(device)
-logger.debug('Loading model state into memory...')
-model.load_state_dict(torch.load(model_path, map_location=device))
-model.eval()
-logger.debug('Ready!')
 
 
 @logger.trace()
@@ -118,65 +111,67 @@ def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=-1):
             break
 
 
+# def show_stats(array, add_text):
+#     logger.debug("add_text: %s", add_text)
+#     logger.debug("array.shape: %s", array.shape)
+#     logger.debug("np.max(array): %s", np.max(array))
+#     logger.debug("np.std(array): %s", np.std(array))
+#     logger.debug("np.mean(array): %s", np.mean(array))
+#     logger.debug("np.min(array): %s", np.min(array))
+#     np.save(data_folder['images'][f'{add_text}.npy'], array)
+
+
 @logger.trace()
-def process_tile(working_dir, tile_path, confidence, threshold):
-    logger.debug("working_dir: %s", working_dir)
-    logger.debug("tile_path: %s", tile_path)
-    masks = {}
+def process_tile(working_dir, tile_path, confidence, threshold, model):
     uint8_type = True
-    logger.debug('Opening tile...')
     tile = rasterio.open(os.path.join(working_dir, tile_path))
 
     if tile.dtypes[0] != 'uint8':
         uint8_type = False
-    logger.debug('Reading bands...')
+
     array = np.dstack((tile.read(4), tile.read(3), tile.read(2)))
     array = np.nan_to_num(array)
+
     if np.max(array) == 0: return []
 
     if not uint8_type:
-        logger.debug('Converting to uint8_type...')
+        # logger.debug('Converting to uint8_type...')
         array = array.astype(np.float32, order='C') / 32768.0
         array = (array * 255 / np.max(array)).astype('uint8')
 
-    # logger.debug('Converting to PIL image...')
-    image = Image.fromarray(array)
-    logger.debug('Converting to tensor array...')
-    tensor = transforms.ToTensor()(image)
-    logger.debug('Tensor is ready.')
+    # logger.debug('Converting to tensor array...')
+    tensor = transforms.ToTensor()(array)
+    # logger.debug('Tensor is ready.')
 
     with torch.no_grad():
-        logger.debug('Making predictions...')
-        prediction = model([tensor.to(device)])
-        logger.debug('Done).')
+        # logger.debug('Making predictions...')
+        prediction = model.forward([tensor])
+        # logger.debug('Done).')
 
     temp = []
-    total_mask_count = len(prediction[0]['masks'])
-    for i in range(total_mask_count):
-        if i % int(total_mask_count / 10) == 0:
-            logger.debug("mask_i: %s", i)
+
+    for i in range(len(prediction[0]['scores'])):
         if prediction[0]['scores'][i] > confidence:
             mask = prediction[0]['masks'][i, 0].mul(255).byte().cpu().numpy()
             mask = mask < threshold
             mask = mask.astype('uint8') * 255
             temp.append(mask)
 
-    masks[tile_path] = temp
     return temp
 
 
 @logger.trace()
-def tile_pipeline(image_path, confidence, threshold, tile_width=20000, tile_height=20000, working_dir='Temp'):
+def tile_pipeline(image_path, confidence, threshold, model, tile_width=20000, tile_height=20000, working_dir='Temp'):
     crop_tif(image_path, tile_width, tile_height, out_folder=working_dir)
     masks = {}
 
     for tile_path in os.listdir(working_dir):
-        masks[tile_path] = process_tile(working_dir, tile_path, confidence, threshold)
+        masks[tile_path] = process_tile(working_dir, tile_path, confidence, threshold, model=model)
     return masks
 
 
 @logger.trace()
-def image_pipeline(image_path, confidence, threshold):
+def image_pipeline(image_path, confidence, threshold, model):
     masks = {image_path: []}
     uint8_type = True
 
@@ -196,7 +191,7 @@ def image_pipeline(image_path, confidence, threshold):
     tensor = transforms.ToTensor()(image)
 
     with torch.no_grad():
-        prediction = model([tensor.to(device)])
+        prediction = model([tensor])
 
     for i in range(len(prediction[0]['masks'])):
         if prediction[0]['scores'][i] > confidence:
@@ -212,20 +207,26 @@ def image_pipeline(image_path, confidence, threshold):
 def get_mask_info(image_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000, working_dir='Temp'):
     convert_to_epsg(image_path, image_path)
     image = rasterio.open(image_path)
+    # logger.debug("image.bounds: %s", image.bounds)
+
+    model = get_instance_segmentation_model(2)
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    model.eval()
+
     if image.bounds[2] - image.bounds[0] > tile_width or image.bounds[3] - image.bounds[1] > tile_height:
-        masks = tile_pipeline(image_path, confidence, threshold, tile_width, tile_height, working_dir=working_dir)
+        masks = tile_pipeline(image_path, confidence, threshold,
+                              model, tile_width, tile_height,
+                              working_dir=working_dir)
     else:
-        masks = image_pipeline(image_path, confidence, threshold)
+        masks = image_pipeline(image_path, confidence, threshold, model)
     return masks
 
 
 @logger.trace()
 def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20000, tile_height=20000):
     for k, masks, in mask_info.items():
-        logger.debug("k: %s", k)
-        logger.debug("len(masks): %s", len(masks))
+        logger.debug("%s: %s", k, len(masks))
         for mask_i, mask in enumerate(masks):
-            logger.debug("mask.shape: %s", mask.shape)
             image = Image.fromarray(mask)
 
             raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
@@ -238,11 +239,16 @@ def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20
             logger.debug("cmd: %s", cmd)
             os.system(cmd)
 
+            # logger.debug("Changing coordinates...")
             src = rasterio.open(tile_path)
             image_left, image_bottom = src.bounds[:2]
 
+            # logger.debug("[Modifications] opening file for changing...")
+
             with open(output_path, 'r') as file:
                 shp_file = json.load(file)
+
+            # logger.debug("[Modifications] performing coordinate change...")
 
             for i in range(len(shp_file['features'])):
                 for j in range(len(shp_file['features'][i]['geometry']['coordinates'])):
@@ -252,6 +258,8 @@ def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20
                         y = shp_file['features'][i]['geometry']['coordinates'][j][l][1] * tile_height / src.shape[
                             1] + image_bottom
                         shp_file['features'][i]['geometry']['coordinates'][j][l] = [x, y]
+
+            # logger.debug("Writing file...")
 
             with open(output_path, 'w+') as f:
                 json.dump(shp_file, f, indent=2)
@@ -303,19 +311,19 @@ def segment_safe_product(safe_folder_path):
 
     tile_width = 20000
     tile_height = 20000
-
+    tilings_folder = working_folder['tilings'].clear()
     mask_info = get_mask_info(image_path=out_filepath,
                               confidence=0.6,
                               tile_width=tile_width,
                               tile_height=tile_height,
-                              working_dir=working_folder['tilings'])
+                              working_dir=tilings_folder)
 
     perform_modifications(mask_info,
                           working_folder=working_folder,
                           masks_folder=masks_folder,
                           tile_width=tile_width,
                           tile_height=tile_height)
-    multipolygon = get_wkt(folder=working_folder["tilings"])
+    multipolygon = get_wkt(folder=tilings_folder)
     working_folder.clear()
 
     return multipolygon
@@ -325,8 +333,10 @@ pass
 
 
 def main():
+    logger.debug("Getting filepath...")
     safe_folder_path = s2_storage_folder['unzipped_scenes'].get_filepath(
         'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE')
+    logger.debug("Segmenting safe product...")
     segment_safe_product(safe_folder_path)
     pass
 
