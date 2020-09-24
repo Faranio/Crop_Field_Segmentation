@@ -43,6 +43,7 @@ def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
     egistic_notify.send_message(f"""Crop field segmentation done:
 meta = {pformat(kwargs)}
 """)
+    return out.wkt
 
 
 @celery_app.task(name='image_segmentor', queue='image_segmentor')

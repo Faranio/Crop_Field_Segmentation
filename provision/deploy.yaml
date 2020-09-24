@@ -9,13 +9,16 @@
     - include_tasks: { file: 'service_tasks/service.yaml' }
       vars: { service_options: "{{item}}" }
       loop:
-        #        - name: crop_field_segmentation
-        #          command: python -m app.pipeline
+        - name: field_segmentation_kicker
+          command: python -m app.kicker
 
         - name: image_segmentor
           celery_worker:
+          state: started
+
         - name: crop_field_segmentation
           celery_worker:
+          state: started
 
     - name: Greetings!!!
       debug:
