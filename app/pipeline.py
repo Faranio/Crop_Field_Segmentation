@@ -166,7 +166,7 @@ def tile_pipeline(image_path, confidence, threshold, model, tile_width=20000, ti
     masks = {}
 
     for tile_i, tile_path in enumerate(os.listdir(working_dir)):
-        if tile_i % 50 == 0:
+        if tile_i % 10 == 0:
             logger.debug("tile_i: %s", tile_i)
         masks[tile_path] = process_tile(working_dir, tile_path, confidence, threshold, model=model)
     return masks
