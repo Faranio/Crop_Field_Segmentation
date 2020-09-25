@@ -300,7 +300,7 @@ def get_wkt(folder):
 
 @logger.trace()
 @cache.memoize()
-def segment_safe_product(safe_folder_path, tile_width_height=(20000, 20000), confidence=0.6):
+def segment_safe_product(safe_folder_path, roi_wkt, tile_width_height=(20000, 20000), confidence=0.6):
     safe_folder = Folder(safe_folder_path)
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4, 8]]
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))

@@ -25,7 +25,7 @@ def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
                                                  queue='acquire_roi_products') \
         .apply_async(kwargs=dict(roi_wkt=roi_wkt)).get(disable_sync_subtasks=False)
     multipolygons = celery.group(
-        [image_segmentor.s(info['safe_folder']) for info in product_infos]) \
+        [image_segmentor.s(info['safe_folder'], roi_wkt) for info in product_infos]) \
         .delay().get(disable_sync_subtasks=False)
     multipolygons = gpd.GeoDataFrame(dict(geometry=[shwkt.loads(x) for x in multipolygons]), crs='epsg:3857')
     out = shg.MultiPolygon(remove_overlaps(multipolygons.geometry, []))
@@ -43,7 +43,7 @@ meta = {pformat(kwargs)}
 
 
 @celery_app.task(name='image_segmentor', queue='image_segmentor')
-def image_segmentor(safe_folder_path):
+def image_segmentor(safe_folder_path, roi_wkt):
     safe_folder_path = s2_storage_folder.path + safe_folder_path
     logger.debug("safe_folder_path: %s", safe_folder_path)
-    return segment_safe_product(safe_folder_path)
+    return segment_safe_product(safe_folder_path,roi_wkt)
