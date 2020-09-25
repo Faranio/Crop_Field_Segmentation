@@ -306,7 +306,7 @@ def segment_safe_product(safe_folder_path, tile_width_height=(20000, 20000), con
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
     out_filepath = GdalMan(q=True, lazy=True). \
         gdal_merge(*band_paths, separate=True,
-                   out_filepath=working_folder['combined_bands.tiff'])
+                   out_filepath=working_folder['combined_bands.tiff']).out_filepath
     logger.debug("combined_bands: %s", out_filepath)
     tile_width, tile_height = tile_width_height
     tilings_folder = working_folder['tilings'].clear()
