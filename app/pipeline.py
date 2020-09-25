@@ -210,7 +210,6 @@ def image_pipeline(image_path, confidence, threshold, model):
 
 @logger.trace()
 def get_mask_info(image_path, confidence=0.6, threshold=100, tile_width=20000, tile_height=20000, working_dir='Temp'):
-    convert_to_epsg(image_path, image_path)
     image = rasterio.open(image_path)
     # logger.debug("image.bounds: %s", image.bounds)
 
@@ -330,6 +329,7 @@ def segment_safe_product(safe_folder_path, roi_wkt, tile_width_height=(20000, 20
         gdal_merge(*band_paths, separate=True,
                    out_filepath=working_folder['combined_bands.tiff']).out_filepath
     
+    convert_to_epsg(out_filepath, out_filepath)
     crop_wkt(roi_wkt, folder=working_folder)
     
     logger.debug("combined_bands: %s", out_filepath)
