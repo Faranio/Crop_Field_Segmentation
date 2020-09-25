@@ -678,6 +678,14 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
+name = "pycrs"
+version = "1.0.2"
+description = "GIS package for reading, writing, and converting between CRS formats."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pyparsing"
 version = "2.4.7"
 description = "Python parsing module"
@@ -1056,7 +1064,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.0"
 python-versions = "~3.8"
-content-hash = "9dbe6da87c00bb9f490e125b0c3c0b9f1b833916d478b3049ee05c4a3ec36ae0"
+content-hash = "6687db17ec7590252777b8feae5b0a5a786a51227e4d0834af71849e5a7a1447"
 
 [metadata.files]
 affine = [
@@ -1497,6 +1505,9 @@ psutil = [
 pycparser = [
     {file = "pycparser-2.20-py2.py3-none-any.whl", hash = "sha256:7582ad22678f0fcd81102833f60ef8d0e57288b6b5fb00323d101be910e35705"},
     {file = "pycparser-2.20.tar.gz", hash = "sha256:2d475327684562c3a96cc71adf7dc8c4f0565175cf86b6d7a404ff4c771f15f0"},
+]
+pycrs = [
+    {file = "PyCRS-1.0.2.tar.gz", hash = "sha256:3a8cccd92024d813ab81811857f61cddb6ab2f4a1e784595c8dcd6a3a6fd7779"},
 ]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
