@@ -4,15 +4,18 @@ from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
+import pycrs
 import rasterio
 import rasterio.mask
 import shapely
 import torch
 import torchvision
 from PIL import Image
+from fiona.crs import from_epsg
 from lgblkb_tools import Folder, logger
 from lgblkb_tools.gdal_datasets import GdalMan
 from lgblkb_tools.pathify import get_name
+from rasterio.mask import mask
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import shape
 from torchvision import transforms
@@ -299,6 +302,25 @@ def get_wkt(folder):
 
 
 @logger.trace()
+def crop_wkt(roi_wkt, folder):
+    out_tif = folder['combined_bands.tiff']
+    data = rasterio.open(out_tif)
+    g1 = shapely.wkt.loads(roi_wkt)
+    geo = gpd.GeoDataFrame({'geometry': g1}, index=[0], crs=from_epsg(4326))
+    coords = [json.loads(geo.to_json())['features'][0]['geometry']]
+    out_img, out_transform = mask(data, shapes=coords, crop=True)
+    out_meta = data.meta.copy()
+    out_meta.update({"driver": "GTiff",
+                     "height": out_img.shape[1],
+                     "width": out_img.shape[2],
+                     "transform": out_transform,
+                     "crs": 'EPSG:3857'})
+    
+    with rasterio.open(out_tif, "w", **out_meta) as dest:
+        dest.write(out_img)
+
+
+@logger.trace()
 @cache.memoize()
 def segment_safe_product(safe_folder_path, roi_wkt, tile_width_height=(20000, 20000), confidence=0.6):
     safe_folder = Folder(safe_folder_path)
@@ -307,6 +329,9 @@ def segment_safe_product(safe_folder_path, roi_wkt, tile_width_height=(20000, 20
     out_filepath = GdalMan(q=True, lazy=True). \
         gdal_merge(*band_paths, separate=True,
                    out_filepath=working_folder['combined_bands.tiff']).out_filepath
+    
+    crop_wkt(roi_wkt, folder=working_folder)
+    
     logger.debug("combined_bands: %s", out_filepath)
     tile_width, tile_height = tile_width_height
     tilings_folder = working_folder['tilings'].clear()
