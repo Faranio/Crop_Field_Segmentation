@@ -17,6 +17,7 @@ colorlog==4.2.1
 cryptography==3.1.1
 cycler==0.10.0
 decorator==4.4.2
+diskcache==5.0.3
 dynaconf==3.0.0
 fiona==1.8.17
 future==0.18.2

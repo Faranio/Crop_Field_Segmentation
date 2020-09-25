@@ -266,6 +266,14 @@ optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*"
 
 [[package]]
+name = "diskcache"
+version = "5.0.3"
+description = "Disk Cache -- Disk and file backed persistent cache."
+category = "main"
+optional = false
+python-versions = ">=3"
+
+[[package]]
 name = "docker"
 version = "4.3.1"
 description = "A Python library for the Docker Engine API."
@@ -512,7 +520,7 @@ wrapt = ">=1.12.0,<2.0.0"
 
 [package.dependencies.python-box]
 version = ">4"
-extras = ["toml", "ruamel.yaml"]
+extras = ["ruamel.yaml", "toml"]
 
 [[package]]
 name = "markupsafe"
@@ -1048,7 +1056,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.0"
 python-versions = "~3.8"
-content-hash = "0fae9325c3c9b81395145e3bcf23e528ac6f6f2af65698be1df777dbf4f6d9a1"
+content-hash = "9dbe6da87c00bb9f490e125b0c3c0b9f1b833916d478b3049ee05c4a3ec36ae0"
 
 [metadata.files]
 affine = [
@@ -1189,6 +1197,10 @@ cycler = [
 decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
     {file = "decorator-4.4.2.tar.gz", hash = "sha256:e3a62f0520172440ca0dcc823749319382e377f37f140a0b99ef45fecb84bfe7"},
+]
+diskcache = [
+    {file = "diskcache-5.0.3-py3-none-any.whl", hash = "sha256:ff4dc1e69d599dca8c23cecfcf69b23bfecae9c04aca424b4f02c511bb1438c2"},
+    {file = "diskcache-5.0.3.tar.gz", hash = "sha256:5f4bc2018d653a1d7bbdcdecce45ea12061bf8d3b5f0323b7a5402054a285c52"},
 ]
 docker = [
     {file = "docker-4.3.1-py2.py3-none-any.whl", hash = "sha256:13966471e8bc23b36bfb3a6fb4ab75043a5ef1dac86516274777576bed3b9828"},

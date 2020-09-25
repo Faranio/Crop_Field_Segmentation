@@ -19,6 +19,7 @@ lgblkb-tools = "^2.0.19"
 celery = "^4.4.7"
 ansible-base = "^2.10.1"
 redis = "^3.5.3"
+diskcache = "^5.0.3"
 
 
 [tool.poetry.dev-dependencies]
@@ -49,9 +50,9 @@ infrastructure = "task ansible play infrastructure"
 deploy = "task ansible play deploy"
 
 
-run = "docker run -it --rm -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -v /home/lgblkb/caches/Crop_Field_Segmentation/:/home/lgblkb/caches/Crop_Field_Segmentation/ -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 python -m"
+run = "docker run -it --rm -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -v /home/lgblkb/caches/Crop_Field_Segmentation:/home/lgblkb/caches/Crop_Field_Segmentation -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 python -m"
 runit = "docker run -it --rm --user root -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 bash"
-docker_build = "docker image build -t crop_field_segmentation-development:0.1.0 --target builder --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 --build-arg USERNAME=lgblkb --build-arg PROJECT_DIR=/home/lgblkb/PycharmProjects/Crop_Field_Segmentation /home/lgblkb/PycharmProjects/Crop_Field_Segmentation"
+docker_build = "docker image build -t crop_field_segmentation-development:0.1.0 --target builder --no-cache --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 --build-arg USERNAME=lgblkb --build-arg PROJECT_DIR=/home/lgblkb/PycharmProjects/Crop_Field_Segmentation /home/lgblkb/PycharmProjects/Crop_Field_Segmentation"
 
 [tool.project]
 encrypted = [
@@ -61,7 +62,7 @@ encrypted = [
 
 [tool.project.env_data.default]
 infrastructure_services.toggle = [
-#    'portainer',
+    #    'portainer',
     'redis',
     #    'postgis_imagination',
     #    'postgis_yield_prediction'
@@ -75,6 +76,7 @@ infrastructure_services.toggle = [
 docker_build = """
 docker image build -t {{image_fullname}}
                   --target {{build_target}}
+                  --no-cache
                   --build-arg USER_ID={{ansible_user_uid}}
                   --build-arg GROUP_ID={{ansible_user_gid}}
                   --build-arg USERNAME={{ansible_user_id}}

@@ -1,3 +1,4 @@
+import diskcache
 from functools import partial
 
 from lgblkb_tools import Folder, logger
@@ -22,10 +23,11 @@ s2_storage_folder = project_folders.s2_storage_folder
 cache_folder = project_folders.cache_folder
 data_folder = project_folders.data_folder
 
+cache = diskcache.Cache(cache_folder['diskcache'])
+
 
 @logger.trace()
 def main():
-
     pass
 
 

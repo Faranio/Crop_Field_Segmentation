@@ -19,7 +19,7 @@ from torchvision import transforms
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
-from app.app import s2_storage_folder, data_folder, cache_folder
+from app.app import s2_storage_folder, data_folder, cache_folder, cache
 
 # device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 # logger.debug("device: %s", device)
@@ -121,7 +121,7 @@ def crop_tif(tif_file, width=20000, height=20000, out_folder='Temp', limit=-1):
 #     np.save(data_folder['images'][f'{add_text}.npy'], array)
 
 
-@logger.trace()
+# @logger.trace()
 def process_tile(working_dir, tile_path, confidence, threshold, model):
     uint8_type = True
     tile = rasterio.open(os.path.join(working_dir, tile_path))
@@ -165,7 +165,9 @@ def tile_pipeline(image_path, confidence, threshold, model, tile_width=20000, ti
     crop_tif(image_path, tile_width, tile_height, out_folder=working_dir)
     masks = {}
 
-    for tile_path in os.listdir(working_dir):
+    for tile_i, tile_path in enumerate(os.listdir(working_dir)):
+        if tile_i % 50 == 0:
+            logger.debug("tile_i: %s", tile_i)
         masks[tile_path] = process_tile(working_dir, tile_path, confidence, threshold, model=model)
     return masks
 
@@ -297,39 +299,32 @@ def get_wkt(folder):
 
 
 @logger.trace()
-def segment_safe_product(safe_folder_path):
-    # safe_folder: Folder = Folder(s2_storage_folder['unzipped_scenes'].get_filepath(
-    #     'S2A_MSIL2A_20200625T060641_N0214_R134_T43UDV_20200625T084444.SAFE'), reactive=False, assert_exists=True)
+@cache.memoize()
+def segment_safe_product(safe_folder_path, tile_width_height=(20000, 20000), confidence=0.6):
     safe_folder = Folder(safe_folder_path)
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4, 8]]
-    gm = GdalMan(q=True, lazy=True)
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
-    masks_folder = working_folder['Masks']
-    out_filepath = working_folder['combined_bands.tiff']
-    gm.gdal_merge(*band_paths, separate=True, out_filepath=out_filepath)
-    logger.debug("out_filepath: %s", out_filepath)
-
-    tile_width = 20000
-    tile_height = 20000
+    out_filepath = GdalMan(q=True, lazy=True). \
+        gdal_merge(*band_paths, separate=True,
+                   out_filepath=working_folder['combined_bands.tiff'])
+    logger.debug("combined_bands: %s", out_filepath)
+    tile_width, tile_height = tile_width_height
     tilings_folder = working_folder['tilings'].clear()
     mask_info = get_mask_info(image_path=out_filepath,
-                              confidence=0.6,
+                              confidence=confidence,
                               tile_width=tile_width,
                               tile_height=tile_height,
                               working_dir=tilings_folder)
 
     perform_modifications(mask_info,
                           working_folder=working_folder,
-                          masks_folder=masks_folder,
+                          masks_folder=working_folder['Masks'],
                           tile_width=tile_width,
                           tile_height=tile_height)
-    multipolygon = get_wkt(folder=tilings_folder)
+    multipolygon_wkt = get_wkt(folder=tilings_folder)
     working_folder.clear()
 
-    return multipolygon
-
-
-pass
+    return multipolygon_wkt
 
 
 def main():
