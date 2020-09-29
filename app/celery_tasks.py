@@ -21,6 +21,7 @@ def celery_hook(payload, task_name, queue='', signature_options=None, apply_asyn
 
 @celery_app.task(name='crop_field_segmentation', queue='crop_field_segmentation')
 def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
+    logger.debug("kwargs:\n%s", pformat(kwargs))
     product_infos: [Dict] = celery_app.signature('acquire_roi_products',
                                                  queue='acquire_roi_products') \
         .apply_async(kwargs=dict(roi_wkt=roi_wkt)).get(disable_sync_subtasks=False)
@@ -34,8 +35,12 @@ def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
     #     safe_folder_path = product_info['safe_folder_path']
     #     multipolygon = do_the_job(safe_folder_path)
     #     multipolygons.append(multipolygon)
+
     if hook:
+        logger.debug("hook:\n%s", pformat(hook))
         celery_hook(dict(fields=out.wkt, **kwargs), **hook)
+    else:
+        logger.debug("hook: %s", hook)
     egistic_notify.send_message(f"""Crop field segmentation done:
 meta = {pformat(kwargs)}
 """)
@@ -46,4 +51,4 @@ meta = {pformat(kwargs)}
 def image_segmentor(safe_folder_path, roi_wkt):
     safe_folder_path = s2_storage_folder.path + safe_folder_path
     logger.debug("safe_folder_path: %s", safe_folder_path)
-    return segment_safe_product(safe_folder_path,roi_wkt)
+    return segment_safe_product(safe_folder_path, roi_wkt)
