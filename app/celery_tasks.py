@@ -28,6 +28,7 @@ def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
     multipolygons = celery.group(
         [image_segmentor.s(info['safe_folder'], roi_wkt) for info in product_infos]) \
         .delay().get(disable_sync_subtasks=False)
+    logger.debug("len(multipolygons): %s", len(multipolygons))
     multipolygons = gpd.GeoDataFrame(dict(geometry=[shwkt.loads(x) for x in multipolygons]), crs='epsg:3857')
     out = shg.MultiPolygon(remove_overlaps(multipolygons.geometry, []))
     # multipolygons = list()
