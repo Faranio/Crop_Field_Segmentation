@@ -24,6 +24,7 @@ cache_folder = project_folders.cache_folder
 data_folder = project_folders.data_folder
 
 cache = diskcache.Cache(cache_folder['diskcache'])
+# cache.clear()
 
 
 @logger.trace()

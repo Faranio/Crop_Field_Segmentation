@@ -14,6 +14,7 @@ from app.pipeline import segment_safe_product, remove_overlaps
 
 
 def celery_hook(payload, task_name, queue='', signature_options=None, apply_async=None):
+    logger.debug("payload:\n%s", pformat(payload))
     queue = queue or task_name
     celery_app.signature(task_name, queue=queue, **(signature_options or {})) \
         .apply_async(**dict(dict(serializer='json'), **(apply_async or {})), kwargs=payload)
@@ -30,7 +31,12 @@ def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
         .delay().get(disable_sync_subtasks=False)
     logger.debug("len(multipolygons): %s", len(multipolygons))
     multipolygons = gpd.GeoDataFrame(dict(geometry=[shwkt.loads(x) for x in multipolygons]), crs='epsg:3857')
-    out = shg.MultiPolygon(remove_overlaps(multipolygons.geometry, []))
+    multipolygons = multipolygons[multipolygons.area != 0]
+    logger.debug("multipolygons:\n%s", multipolygons)
+    if multipolygons.empty:
+        out = shg.MultiPolygon()
+    else:
+        out = shg.MultiPolygon(remove_overlaps(multipolygons.geometry, []))
     # multipolygons = list()
     # for product_info in product_infos:
     #     safe_folder_path = product_info['safe_folder_path']
@@ -39,7 +45,7 @@ def crop_field_segmentation(roi_wkt, hook=None, **kwargs):
 
     if hook:
         logger.debug("hook:\n%s", pformat(hook))
-        celery_hook(dict(fields=out.wkt, **kwargs), **hook)
+        celery_hook(dict(result=out.wkt, **kwargs), **hook)
     else:
         logger.debug("hook: %s", hook)
     egistic_notify.send_message(f"""Crop field segmentation done:
