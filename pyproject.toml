@@ -17,10 +17,14 @@ torchvision = "^0.7.0"
 python-box = "^5.1.1"
 lgblkb-tools = "^2.0.19"
 celery = "^4.4.7"
-ansible-base = "^2.10.1"
+#ansible-base = "^2.10.1"
 redis = "^3.5.3"
 diskcache = "^5.0.3"
 pycrs = "^1.0.2"
+sklearn = "^0.0"
+pycocotools = "^2.0.2"
+scikit-image = "^0.17.2"
+wandb = "^0.10.4"
 
 
 [tool.poetry.dev-dependencies]
@@ -53,7 +57,8 @@ deploy = "task ansible play deploy"
 
 run = "docker run -it --rm -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -v /home/lgblkb/caches/Crop_Field_Segmentation:/home/lgblkb/caches/Crop_Field_Segmentation -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 python -m"
 runit = "docker run -it --rm --user root -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 bash"
-docker_build = "docker image build -t crop_field_segmentation-development:0.1.0 --target builder --no-cache --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 --build-arg USERNAME=lgblkb --build-arg PROJECT_DIR=/home/lgblkb/PycharmProjects/Crop_Field_Segmentation /home/lgblkb/PycharmProjects/Crop_Field_Segmentation"
+docker_build = "docker image build -t crop_field_segmentation-development:0.1.0 --target builder --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 --build-arg USERNAME=lgblkb --build-arg PROJECT_DIR=/home/lgblkb/PycharmProjects/Crop_Field_Segmentation /home/lgblkb/PycharmProjects/Crop_Field_Segmentation"
+run_train = "docker run -it --rm -v /home/lgblkb/PycharmProjects/Crop_Field_Segmentation:/home/lgblkb/PycharmProjects/Crop_Field_Segmentation -v /home/lgblkb/caches/Crop_Field_Segmentation:/home/lgblkb/caches/Crop_Field_Segmentation -v /home/lgblkb/data/Crop_Field_Segmentation:/home/lgblkb/data/Crop_Field_Segmentation -v /home/lgblkb/PycharmProjects/imagination/sentinel2:/home/lgblkb/PycharmProjects/imagination/sentinel2 -w /home/lgblkb/PycharmProjects/Crop_Field_Segmentation --gpus all -e TORCH_HOME=/home/lgblkb/data/Crop_Field_Segmentation crop_field_segmentation-development:0.1.0 python -m"
 
 [tool.project]
 encrypted = [
@@ -89,6 +94,19 @@ docker run -it --rm
             -v {{project_folder}}:{{project_folder}}
             -v {{settings.PROJECT.dirs.cache_folder}}:{{settings.PROJECT.dirs.cache_folder}}
             -w {{project_folder}}
+            {{image_fullname}}
+            python -m
+
+"""
+run_train = """
+docker run -it --rm
+            -v {{project_folder}}:{{project_folder}}
+            -v {{settings.PROJECT.dirs.cache_folder}}:{{settings.PROJECT.dirs.cache_folder}}
+            -v {{settings.PROJECT.dirs.data_folder}}:{{settings.PROJECT.dirs.data_folder}}
+            -v {{settings.PROJECT.dirs.s2_storage_folder}}:{{settings.PROJECT.dirs.s2_storage_folder}}
+            -w {{project_folder}}
+            --gpus all
+            -e TORCH_HOME={{settings.PROJECT.dirs.data_folder}}
             {{image_fullname}}
             python -m
 

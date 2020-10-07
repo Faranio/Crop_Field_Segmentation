@@ -231,12 +231,11 @@ def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20
     for k, masks, in mask_info.items():
         logger.debug("%s: %s", k, len(masks))
         for mask_i, mask in enumerate(masks):
-            image = Image.fromarray(mask)
-
             raster_filepath = Path(masks_folder[f'{get_name(k)}_{mask_i}.bmp'])
-            tile_path = working_folder[f"tilings/{get_name(k)}.tiff"]
-            output_path = Path(raster_filepath).with_suffix('.geojson')
+            image = Image.fromarray(mask)
             image.save(raster_filepath)
+
+            output_path = Path(raster_filepath).with_suffix('.geojson')
             cmd = f"potrace -b geojson {raster_filepath} -o {output_path} && " \
                   f"cat {output_path} | simplify-geojson -t 5 > temp.geojson && " \
                   f"mv temp.geojson {output_path}"
@@ -244,6 +243,7 @@ def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20
             os.system(cmd)
 
             # logger.debug("Changing coordinates...")
+            tile_path = working_folder[f"tilings/{get_name(k)}.tiff"]
             src = rasterio.open(tile_path)
             image_left, image_bottom = src.bounds[:2]
 

@@ -1,5 +1,5 @@
-FROM phusion/baseimage:focal-1.0.0alpha1-amd64 as base
-#FROM nvidia/cuda:11.0-runtime-ubuntu20.04
+#FROM phusion/baseimage:focal-1.0.0alpha1-amd64 as base
+FROM nvidia/cuda:11.0-runtime-ubuntu20.04 as base
 MAINTAINER Dias Bakhtiyarov, dbakhtiyarov@nu.edu.kz
 
 ENV LANG=C.UTF-8 \
