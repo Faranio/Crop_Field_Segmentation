@@ -460,7 +460,7 @@ def main():
     model = get_instance_segmentation_model(num_classes)
     # model.load_state_dict(torch.load("Models/model/MODEL_7.pt"))
     model.to(device)
-    wandb.init(project="crop_field_segmentation")
+    # wandb.init(project="crop_field_segmentation")
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params,
@@ -484,28 +484,25 @@ def main():
 
     print("[INFO] Starting the training process...")
 
+    metric_logger = utils.MetricLogger(delimiter="  ")
+    metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     for epoch in range(num_epochs):
-
         # Train
-        model.to(device)
         model.train()
-        metric_logger = utils.MetricLogger(delimiter="  ")
-        metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
         header = 'Epoch: [{}]'.format(epoch + 1)
 
         lr_temp_scheduler = None
         if epoch == 0:
             warmup_factor = 1. / 1000
             warmup_iters = min(1000, len(data_loader) - 1)
-
             lr_temp_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
-        for images, targets in metric_logger.log_every(data_loader, print_freq, header):
+        for iter_i, (images, targets) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
+            logger.debug("iter_i: %s", iter_i)
             images = list(image.to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
             loss_dict = model(images, targets)
-
             losses = sum(loss for loss in loss_dict.values())
 
             # reduce losses over all GPUs for logging purposes
@@ -513,7 +510,7 @@ def main():
             losses_reduced = sum(loss for loss in loss_dict_reduced.values())
 
             loss_value = losses_reduced.item()
-            wandb.log({'epoch': epoch, 'Train loss': loss_value})
+            wandb.log({'epoch': epoch, 'Train loss': loss_value}, step=epoch)
 
             if not math.isfinite(loss_value):
                 print("Loss is {}, stopping training".format(loss_value))
@@ -533,24 +530,23 @@ def main():
         # Evaluate
         logger.debug('Evaluating...')
         with torch.no_grad():
-
             # n_threads = torch.get_num_threads()
             # torch.set_num_threads(1)
-            # cpu_device = torch.device("cpu")
-            # model.to(cpu_device)
+            cpu_device = torch.device("cpu")
+            model.to(cpu_device)
             model.eval()
             metric_temp_logger = utils.MetricLogger(delimiter="  ")
             header = 'Test:'
 
             for image, targets in metric_temp_logger.log_every(data_loader_test, print_freq, header):
-                image = list(img.to(device) for img in image)
-                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                image = list(img.to(cpu_device) for img in image)
+                targets = [{k: v.to(cpu_device) for k, v in t.items()} for t in targets]
 
                 torch.cuda.synchronize()
                 model_time = time.time()
                 outputs = model(image)
 
-                outputs = [{k: v.to(device) for k, v in t.items()} for t in outputs]
+                outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
                 model_time = time.time() - model_time
 
                 res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
