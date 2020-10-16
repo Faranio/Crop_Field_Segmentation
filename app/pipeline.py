@@ -269,21 +269,36 @@ def perform_modifications(mask_info, working_folder, masks_folder, tile_width=20
                 json.dump(shp_file, f, indent=2)
 
 
-def remove_overlaps(geometry: gpd.GeoSeries, shapes, overlap_threshold=50):
-    for i in range(len(geometry)):
-        append = True
-        polygon = shape(geometry[i])
-
-        for check in shapes:
-            area = polygon.intersection(check).area
-
-            if area * 100 / polygon.area > overlap_threshold or area * 100 / check.area > overlap_threshold:
-                append = False
-                break
-
-        if append:
-            shapes.append(polygon)
-    return shapes
+def remove_overlaps(geometry: gpd.GeoSeries, shapes, overlap_threshold=40):
+	sorting = []
+	
+	for i in range(len(geometry)):
+		try:
+			polygon = shape(geometry[i])
+		except:
+			polygon = geometry[i]
+		
+		sorting.append([i, polygon.area, polygon])
+	
+	sorting.sort(key=lambda x: x[1])
+	
+	for i in range(len(sorting)):
+		append = True
+		for check in range(len(shapes)):
+			try:
+				area = sorting[i][2].intersection(shapes[check]).area
+			except:
+				continue
+				
+			if area * 100 / sorting[i][1] > overlap_threshold:
+				append = False
+				break
+				
+		if append:
+			shapes.append(sorting[i][2])
+	
+	logger.debug("Length of shapes: %i", len(shapes))
+	return shapes
 
 
 @logger.trace()
