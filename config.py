@@ -5,9 +5,3 @@ settings = Dynaconf(
     environments=True,
     load_dotenv=True,
 )
-
-# params = dict(settings)
-# logger.debug("params:\n%s", pformat(params))
-
-# `envvar_prefix` = export envvars with `export DYNACONF_FOO=bar`.
-# `settings_files` = Load this files in the order.

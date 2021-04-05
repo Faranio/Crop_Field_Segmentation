@@ -151,3 +151,6 @@ provision/roles/base/files/.toml_info.yaml
 /settings.yaml
 my_pipeline.py
 Models
+data
+caches
+settings.yaml

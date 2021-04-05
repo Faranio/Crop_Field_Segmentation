@@ -1,8 +1,0 @@
-- hosts: all
-  roles:
-    - name: base
-  vars:
-  #    show_container_details: yes
-  #    launch_container: no
-  tasks:
-    - include_role: { name: base, tasks_from: infrastructure.yaml }
