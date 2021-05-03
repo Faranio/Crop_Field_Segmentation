@@ -154,3 +154,5 @@ Models
 data
 caches
 settings.yaml
+*.gpkg
+.idea
