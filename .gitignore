@@ -139,20 +139,12 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-.idea/.gitignore
-.idea/Crop_Field_Segmentation.iml
-.idea/dbnavigator.xml
-.idea/inspectionProfiles/
-.idea/misc.xml
-.idea/modules.xml
-.idea/vcs.xml
-provision/roles/base/files/.secret
-provision/roles/base/files/.toml_info.yaml
-/settings.yaml
-my_pipeline.py
-Models
-data
-caches
-settings.yaml
+# My additions
 *.gpkg
 .idea
+__pycache__
+caches
+data
+provision
+settings.yaml
+wandb
