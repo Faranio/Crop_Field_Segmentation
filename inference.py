@@ -6,6 +6,7 @@ import rasterio
 import rasterio.mask
 import shapely
 import shapely.errors
+import shapely.wkt
 import torch
 
 from lgblkb_tools import Folder, logger
@@ -283,37 +284,46 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold):
     return wkt
 
 
-def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confidence=0.7):
+def predict_regions(tif_file_name, num_classes, tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
+                    mask_pixel_threshold=80):
     logger.info(f"Image path: {tif_file_name}")
     temp_crs_converted_file_name = 'tif_file_with_epsg_3857.tiff'
     tif_file_folder = Folder(tif_file_name)
     working_folder = Folder(cache_folder.get_filepath(tif_file_folder.name))
     masks_folder = working_folder['Masks']
     out_filepath = working_folder[temp_crs_converted_file_name]
-    show_image_and_tile_shapes(out_filepath, tile_width, tile_height)
     convert_crs(tif_file_name, out_filepath)
+    show_image_and_tile_shapes(out_filepath, tile_width, tile_height)
     predict_masks(
         image_path=out_filepath,
         confidence=confidence,
-        mask_pixel_threshold=80,
-        num_classes=2,
+        mask_pixel_threshold=mask_pixel_threshold,
+        num_classes=num_classes,
         tile_width=tile_width,
         tile_height=tile_height,
         working_folder=working_folder
     )
     multipolygon_wkt = get_single_wkt_from_masks(
         masks_folder=masks_folder,
-        intersection_threshold=0.8
+        intersection_threshold=intersection_threshold
     )
     working_folder.clear()
     logger.info(f"Multipolygon WKT: {multipolygon_wkt}")
     return multipolygon_wkt
 
 
+def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
+    gpd.GeoSeries(shapely.wkt.loads(wkt), crs=crs).to_file(filepath, driver)
+
+
 if __name__ == "__main__":
-    predict_regions(
-        tif_file_name="data/Tombov/tombov_rgbnir.tiff",
+    wkt = predict_regions(
+        tif_file_name=data_folder['Tombov']['tombov_rgbnir.tiff'],
         tile_width=20000,
         tile_height=20000,
-        confidence=0.7
+        num_classes=2,
+        confidence=0.7,
+        intersection_threshold=0.8,
+        mask_pixel_threshold=80
     )
+    save_wkt(wkt, "rgb_result.gpkg")
