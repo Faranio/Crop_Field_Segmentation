@@ -12,6 +12,8 @@ import config
 import metric_logger
 import utils
 
+from dataset import FieldsDataset
+
 
 class TrainingPipeline:
     def __init__(self, device, num_classes, train_folder, valid_folder, test_folder=None, batch_size=2):
@@ -44,13 +46,13 @@ class TrainingPipeline:
         self.initialize_data_loaders()
 
     def initialize_datasets(self):
-        self._dataset_train = utils.FieldsDataset(self.train_folder, utils.get_transform())
-        self._dataset_valid = utils.FieldsDataset(self.valid_folder, utils.get_transform())
+        self._dataset_train = FieldsDataset(self.train_folder, utils.get_transform())
+        self._dataset_valid = FieldsDataset(self.valid_folder, utils.get_transform())
         lgblkb_tools.logger.info(f"Length of Training dataset: {len(self._dataset_train)}")
         lgblkb_tools.logger.info(f"Length of Validation dataset: {len(self._dataset_valid)}")
 
         if self.test_folder is not None:
-            self._dataset_test = utils.FieldsDataset(self.test_folder, utils.get_transform())
+            self._dataset_test = FieldsDataset(self.test_folder, utils.get_transform())
             lgblkb_tools.logger.info(f"Length of Testing dataset: {len(self._dataset_test)}")
 
     def initialize_data_loaders(self):

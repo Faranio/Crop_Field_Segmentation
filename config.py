@@ -7,4 +7,5 @@ project_folders = box.Box({k: lgblkb_tools.Folder(v, assert_exists=True) for k, 
 cache_folder = project_folders.cache_folder
 data_folder = project_folders.data_folder
 downloaded_folder = data_folder['Downloaded_Data']
+model_path = data_folder['Model']['Max_Model.pt']
 train_folder = data_folder['Training_Data']

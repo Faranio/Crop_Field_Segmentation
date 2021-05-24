@@ -17,7 +17,7 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import shape
 from torchvision import transforms
 
-from config import cache_folder, data_folder
+from config import cache_folder, data_folder, model_path
 from utils import get_instance_segmentation_model
 
 
@@ -211,7 +211,7 @@ def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold, mode
 
 def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, num_classes, tile_width, tile_height):
     segmentation_model = InstanceSegmentationModel(
-        model_checkpoint=data_folder['Model']['mAP_60.382.pt'],
+        model_checkpoint=model_path,
         num_classes=num_classes,
         device='cuda'
     )
@@ -273,7 +273,7 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold):
             inter1 = area / sorted_polygons[i].area
             inter2 = area / sorted_polygons[j].area
 
-            if inter1 > intersection_threshold or inter2 > intersection_threshold:
+            if inter1 > (1 - intersection_threshold) or inter2 > (1 - intersection_threshold):
                 append = False
                 break
 
@@ -318,7 +318,7 @@ def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
 
 if __name__ == "__main__":
     wkt = predict_regions(
-        tif_file_name=data_folder['Tombov']['tombov_rgbnir.tiff'],
+        tif_file_name=data_folder['Tombov']['temp.tiff'],
         tile_width=20000,
         tile_height=20000,
         num_classes=2,
@@ -326,4 +326,4 @@ if __name__ == "__main__":
         intersection_threshold=0.8,
         mask_pixel_threshold=80
     )
-    save_wkt(wkt, "rgb_result.gpkg")
+    save_wkt(wkt, "old_result.gpkg")
