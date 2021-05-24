@@ -1,5 +1,6 @@
 import lgblkb_tools
 import math
+import os
 import pickle
 import sys
 import time
@@ -10,6 +11,7 @@ import wandb
 import coco_utils
 import config
 import metric_logger
+import transforms
 import utils
 
 from dataset import FieldsDataset
@@ -45,14 +47,17 @@ class TrainingPipeline:
         self.initialize_datasets()
         self.initialize_data_loaders()
 
+        if not os.path.exists(config.train_folder['Train']['coco_train.pickle']):
+            coco_utils.save_as_coco_dataset(self.data_loader_train, self.data_loader_valid, self.data_loader_test)
+
     def initialize_datasets(self):
-        self._dataset_train = FieldsDataset(self.train_folder, utils.get_transform())
-        self._dataset_valid = FieldsDataset(self.valid_folder, utils.get_transform())
+        self._dataset_train = FieldsDataset(self.train_folder, transforms.get_transform())
+        self._dataset_valid = FieldsDataset(self.valid_folder, transforms.get_transform())
         lgblkb_tools.logger.info(f"Length of Training dataset: {len(self._dataset_train)}")
         lgblkb_tools.logger.info(f"Length of Validation dataset: {len(self._dataset_valid)}")
 
         if self.test_folder is not None:
-            self._dataset_test = FieldsDataset(self.test_folder, utils.get_transform())
+            self._dataset_test = FieldsDataset(self.test_folder, transforms.get_transform())
             lgblkb_tools.logger.info(f"Length of Testing dataset: {len(self._dataset_test)}")
 
     def initialize_data_loaders(self):
@@ -91,21 +96,9 @@ class TrainingPipeline:
                                                               step_size_up=1, step_size_down=len(self._dataset_train)
                                                                                              // self.batch_size)
         self.valid_coco_ds = pickle.load(open(lgblkb_tools.Folder(self.valid_folder[0])['coco_valid.pickle'], 'rb'))
-
         lgblkb_tools.logger.info("Starting the training process")
-
         self.metric_logger_var = metric_logger.MetricLogger(delimiter="  ")
         self.metric_logger_var.add_meter('lr', metric_logger.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-
-    def lr_warmup(self, epoch, num_iter):
-        lr_temp_scheduler = None
-
-        if epoch == 0:
-            warmup_factor = 1. / num_iter
-            warmup_iters = min(num_iter, len(self.data_loader_train) - 1)
-            lr_temp_scheduler = metric_logger.warmup_lr_scheduler(self.optimizer, warmup_iters, warmup_factor)
-
-        return lr_temp_scheduler
 
     def get_eval_stats(self, metric_temp_logger):
         metric_temp_logger.synchronize_between_processes()
