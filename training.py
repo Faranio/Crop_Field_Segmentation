@@ -51,13 +51,13 @@ class TrainingPipeline:
             coco_utils.save_as_coco_dataset(self.data_loader_train, self.data_loader_valid, self.data_loader_test)
 
     def initialize_datasets(self):
-        self._dataset_train = FieldsDataset(self.train_folder, transforms.get_transform())
-        self._dataset_valid = FieldsDataset(self.valid_folder, transforms.get_transform())
+        self._dataset_train = FieldsDataset(self.train_folder, transforms.get_train_transform())
+        self._dataset_valid = FieldsDataset(self.valid_folder, transforms.get_test_transform())
         lgblkb_tools.logger.info(f"Length of Training dataset: {len(self._dataset_train)}")
         lgblkb_tools.logger.info(f"Length of Validation dataset: {len(self._dataset_valid)}")
 
         if self.test_folder is not None:
-            self._dataset_test = FieldsDataset(self.test_folder, transforms.get_transform())
+            self._dataset_test = FieldsDataset(self.test_folder, transforms.get_test_transform())
             lgblkb_tools.logger.info(f"Length of Testing dataset: {len(self._dataset_test)}")
 
     def initialize_data_loaders(self):
@@ -100,6 +100,10 @@ class TrainingPipeline:
         self.metric_logger_var = metric_logger.MetricLogger(delimiter="  ")
         self.metric_logger_var.add_meter('lr', metric_logger.SmoothedValue(window_size=1, fmt='{value:.6f}'))
 
+        del self._dataset_train
+        del self._dataset_valid
+        del self._dataset_test
+
     def get_eval_stats(self, metric_temp_logger):
         metric_temp_logger.synchronize_between_processes()
         lgblkb_tools.logger.info(f"Averaged stats: {metric_temp_logger}")
@@ -109,7 +113,7 @@ class TrainingPipeline:
         wandb.log({'Mask mAP': stats[0] * 100})
         return stats[0]
 
-    def train(self, base_lr=0.00001, max_lr=0.005, num_epochs=20, print_freq=10):
+    def train(self, base_lr=0.00001, max_lr=0.01, num_epochs=30, print_freq=10):
         self.initialize_tools(base_lr=base_lr, max_lr=max_lr)
         max_mAP = 0
 
