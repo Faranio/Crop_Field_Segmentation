@@ -113,7 +113,7 @@ class TrainingPipeline:
         wandb.log({'Mask mAP': stats[0] * 100})
         return stats[0]
 
-    def train(self, base_lr=0.00001, max_lr=0.01, num_epochs=30, print_freq=10):
+    def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=30, print_freq=10):
         self.initialize_tools(base_lr=base_lr, max_lr=max_lr)
         max_mAP = 0
 

@@ -92,7 +92,7 @@ class RandomPhotometricDistort(nn.Module):
 
 
 def get_train_transform():
-    return Compose([RandomHorizontalFlip(), RandomPhotometricDistort(), ToTensor()])
+    return Compose([RandomPhotometricDistort(), ToTensor()])
 
 
 def get_test_transform():
