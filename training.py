@@ -17,6 +17,9 @@ import utils
 from dataset import FieldsDataset
 
 
+MAX_MAP = 66.111
+
+
 class TrainingPipeline:
     def __init__(self, device, num_classes, train_folder, valid_folder, test_folder=None, batch_size=2):
         self._device = device
@@ -81,7 +84,7 @@ class TrainingPipeline:
 
     def initialize_model(self):
         self.model = utils.get_instance_segmentation_model(self.num_classes)
-        # self.model.load_state_dict(torch.load("mAP_66.111.pt"))
+        self.model.load_state_dict(torch.load(f"mAP_{str(MAX_MAP)}.pt"))
         self.model.to(self._device)
         self.iou_types = ['bbox', 'segm']
         self._params = [p for p in self.model.parameters() if p.requires_grad]
@@ -116,7 +119,6 @@ class TrainingPipeline:
 
     def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=30, print_freq=10):
         self.initialize_tools(base_lr=base_lr, max_lr=max_lr)
-        max_mAP = 0
 
         for epoch in range(num_epochs):
             self.model.train()
@@ -171,9 +173,9 @@ class TrainingPipeline:
 
                 current_mAP = self.get_eval_stats(metric_temp_logger)
 
-                if current_mAP > max_mAP:
+                if current_mAP > MAX_MAP:
                     lgblkb_tools.logger.info(f"\n\nSaving the model. Mask mAP: {current_mAP * 100}%\n\n")
-                    max_mAP = current_mAP
+                    MAX_MAP = current_mAP
                     torch.save(self.model.state_dict(), "mAP_{:.3f}.pt".format(current_mAP * 100))
 
         lgblkb_tools.logger.info("\n\n\nFinished!")
