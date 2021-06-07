@@ -16,7 +16,7 @@ import config
 
 def convert_to_coco_api(ds, title):
     coco_ds = pycocotools.coco.COCO()
-    ann_id = 0
+    ann_id = 1
     target_dataset = {"images": [], "categories": [], "annotations": []}
     categories = set()
     ds_length = len(ds)
@@ -32,7 +32,10 @@ def convert_to_coco_api(ds, title):
         labels = targets['labels'].tolist()
         areas = targets['area'].tolist()
         iscrowd = targets['iscrowd'].tolist()
-        masks = targets['masks'].permute(0, 2, 1).contiguous().permute(0, 2, 1)
+
+        if 'masks' in targets:
+            masks = targets['masks'].permute(0, 2, 1).contiguous().permute(0, 2, 1)
+
         num_objs = len(bboxes)
 
         for i in range(num_objs):
@@ -43,13 +46,16 @@ def convert_to_coco_api(ds, title):
                    'iscrowd': iscrowd[i],
                    'id': ann_id}
             categories.add(labels[i])
-            ann['segmentation'] = pycocotools.mask.encode(masks[i].numpy())
+
+            if 'masks' in targets:
+                ann['segmentation'] = pycocotools.mask.encode(masks[i].numpy())
+
             target_dataset['annotations'].append(ann)
             ann_id += 1
 
     target_dataset['categories'] = [{"supercategory": "field",
-                                     "id": 1,
-                                     "name": "field"}]
+                                     "id": i,
+                                     "name": "field"} for i in sorted(categories)]
     coco_ds.dataset = target_dataset
     coco_ds.createIndex()
     pickle.dump(coco_ds, open(title, 'wb'))

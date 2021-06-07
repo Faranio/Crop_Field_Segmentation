@@ -141,6 +141,7 @@ cython_debug/
 
 # My additions
 *.gpkg
+*.pt
 .idea
 __pycache__
 caches

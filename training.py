@@ -6,7 +6,7 @@ import sys
 import time
 import torch
 import torch.utils.data
-import wandb
+# import wandb
 
 import coco_utils
 import config
@@ -81,12 +81,13 @@ class TrainingPipeline:
 
     def initialize_model(self):
         self.model = utils.get_instance_segmentation_model(self.num_classes)
+        # self.model.load_state_dict(torch.load("mAP_66.111.pt"))
         self.model.to(self._device)
         self.iou_types = ['bbox', 'segm']
         self._params = [p for p in self.model.parameters() if p.requires_grad]
 
     def initialize_tools(self, base_lr, max_lr):
-        wandb.init(project="Crop_Field_Segmentation")
+        # wandb.init(project="Crop_Field_Segmentation")
         self.initialize_model()
         self.optimizer = torch.optim.SGD(self._params,
                                     lr=max_lr,
@@ -110,7 +111,7 @@ class TrainingPipeline:
         self.valid_coco_evaluator.synchronize_between_processes()
         self.valid_coco_evaluator.accumulate()
         stats = self.valid_coco_evaluator.summarize()
-        wandb.log({'Mask mAP': stats[0] * 100})
+        # wandb.log({'Mask mAP': stats[0] * 100})
         return stats[0]
 
     def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=30, print_freq=10):
@@ -130,7 +131,7 @@ class TrainingPipeline:
                 loss_dict_reduced = metric_logger.reduce_dict(loss_dict)
                 losses_reduced = sum(loss for loss in loss_dict_reduced.values())
                 loss_value = losses_reduced.item()
-                wandb.log({'Train Loss': loss_value})
+                # wandb.log({'Train Loss': loss_value})
 
                 if not math.isfinite(loss_value):
                     lgblkb_tools.logger.error(f"Loss is {loss_value}, stopping training.")
