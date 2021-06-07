@@ -1,0 +1,10 @@
+geopandas~=0.7.0
+numpy~=1.20.3
+rasterio~=1.2.3
+torch~=1.7.1+cu110
+torchvision~=0.8.2+cu110
+Pillow~=8.2.0
+dynaconf~=3.0.0
+Shapely~=1.7.1
+pycocotools~=2.0.2
+tqdm~=4.60.0
