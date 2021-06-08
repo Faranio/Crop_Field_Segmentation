@@ -110,6 +110,7 @@ def save_geojson_coordinates(mask_idx, mask, masks_folder, tiles_folder, tile_pa
         json.dump(geojson_coordinates, file, indent=2)
 
     source_file.close()
+    return geojson_filepath.name.split('/')[-1]
 
 
 def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2, out_folder='Temp'):
@@ -197,13 +198,13 @@ def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold, mode
     masks = []
 
     for idx in range(len(prediction[0]['scores'])):
-        score = prediction[0]['scores'][idx]
+        score = prediction[0]['scores'][idx].item()
 
         if score > confidence:
             mask = prediction[0]['masks'][idx, 0].mul(255).byte().cpu().numpy()
             mask = mask < mask_pixel_threshold
             mask = mask.astype('uint8') * 255
-            masks.append(mask)
+            masks.append([mask, score])
 
     tile.close()
     return masks
@@ -218,6 +219,7 @@ def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, 
     masks_folder = working_folder['Masks']
     tiles_folder = working_folder['Tiles']
     crop_tif(image_path, tile_width, tile_height, out_folder=tiles_folder)
+    masks_confidence_mapping = {}
 
     for tile_idx, tile_path in enumerate(os.listdir(tiles_folder)):
         if tile_idx % 10 == 0:
@@ -228,7 +230,11 @@ def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, 
         logger.info(f"{tile_path}: {len(masks)}")
 
         for mask_idx, mask in enumerate(masks):
-            save_geojson_coordinates(mask_idx, mask, masks_folder, tiles_folder, tile_path, tile_width, tile_height)
+            geojson_file_name = save_geojson_coordinates(mask_idx, mask[0], masks_folder, tiles_folder, tile_path,
+                                                         tile_width, tile_height)
+            masks_confidence_mapping[geojson_file_name] = mask[1]
+
+    return masks_confidence_mapping
 
 
 def show_image_and_tile_shapes(image_path, tile_width, tile_height):
@@ -240,7 +246,7 @@ def show_image_and_tile_shapes(image_path, tile_width, tile_height):
     image.close()
 
 
-def get_single_wkt_from_masks(masks_folder, intersection_threshold):
+def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_mapping):
     shapes = []
 
     for geojson in os.listdir(masks_folder):
@@ -252,12 +258,11 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold):
 
                 for i in range(len(shp_file.geometry)):
                     polygon = shape(shp_file.geometry[i])
-                    shapes.append(polygon)
+                    shapes.append([polygon, confidence_mapping[geojson]])
             except ValueError:
                 continue
 
-    multipolygon = shapely.geometry.MultiPolygon(shapes)
-    sorted_polygons = sorted(multipolygon, key=lambda polygon: polygon.area)
+    sorted_polygons = sorted(shapes, key=lambda polygon: polygon[1])
     shapes = []
 
     for i in range(len(sorted_polygons)):
@@ -265,21 +270,22 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold):
 
         for j in range(i + 1, len(sorted_polygons)):
             try:
-                area = sorted_polygons[i].intersection(sorted_polygons[j]).area
+                area = sorted_polygons[i][0].intersection(sorted_polygons[j][0]).area
             except shapely.errors.TopologicalError:
                 append = False
                 break
 
-            inter1 = area / sorted_polygons[i].area
-            inter2 = area / sorted_polygons[j].area
+            inter1 = area / sorted_polygons[i][0].area
+            inter2 = area / sorted_polygons[j][0].area
 
             if inter1 > (1 - intersection_threshold) or inter2 > (1 - intersection_threshold):
                 append = False
                 break
 
         if append:
-            shapes.append(sorted_polygons[i])
+            shapes.append(sorted_polygons[i][0])
 
+    logger.info(f'Number of fields found: {len(shapes)}')
     wkt = shapely.geometry.MultiPolygon(shapes).wkt
     return wkt
 
@@ -294,7 +300,7 @@ def predict_regions(tif_file_name, num_classes, tile_width=20000, tile_height=20
     out_filepath = working_folder[temp_crs_converted_file_name]
     convert_crs(tif_file_name, out_filepath)
     show_image_and_tile_shapes(out_filepath, tile_width, tile_height)
-    predict_masks(
+    mapping = predict_masks(
         image_path=out_filepath,
         confidence=confidence,
         mask_pixel_threshold=mask_pixel_threshold,
@@ -305,10 +311,10 @@ def predict_regions(tif_file_name, num_classes, tile_width=20000, tile_height=20
     )
     multipolygon_wkt = get_single_wkt_from_masks(
         masks_folder=masks_folder,
-        intersection_threshold=intersection_threshold
+        intersection_threshold=intersection_threshold,
+        confidence_mapping=mapping
     )
     working_folder.clear()
-    logger.info(f"Multipolygon WKT: {multipolygon_wkt}")
     return multipolygon_wkt
 
 
@@ -322,8 +328,8 @@ if __name__ == "__main__":
         tile_width=20000,
         tile_height=20000,
         num_classes=2,
-        confidence=0.7,
+        confidence=0.5,
         intersection_threshold=0.8,
         mask_pixel_threshold=80
     )
-    save_wkt(wkt, "old_result.gpkg")
+    save_wkt(wkt, "best_model.gpkg")

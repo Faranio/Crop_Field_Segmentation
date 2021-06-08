@@ -84,7 +84,7 @@ class TrainingPipeline:
 
     def initialize_model(self):
         self.model = utils.get_instance_segmentation_model(self.num_classes)
-        # self.model.load_state_dict(torch.load(f"mAP_{str(MAX_MAP)}.pt"))
+        self.model.load_state_dict(torch.load(f"mAP_{str(MAX_MAP)}.pt"))
         self.model.to(self._device)
         self.iou_types = ['bbox', 'segm']
         self._params = [p for p in self.model.parameters() if p.requires_grad]
@@ -118,6 +118,7 @@ class TrainingPipeline:
         return stats[0]
 
     def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=30, print_freq=10):
+        global MAX_MAP
         self.initialize_tools(base_lr=base_lr, max_lr=max_lr)
 
         for epoch in range(num_epochs):
