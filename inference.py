@@ -35,6 +35,13 @@ class InstanceSegmentationModel:
         self.model.eval()
 
 
+segmentation_model = InstanceSegmentationModel(
+    model_checkpoint=model_path,
+    num_classes=2,
+    device='cuda'
+)
+
+
 def convert_crs(tif_file, out_tif_file, crs="EPSG:3857"):
     source_file = rasterio.open(tif_file)
     transform, width, height = calculate_default_transform(source_file.crs,
@@ -70,6 +77,7 @@ def convert_crs(tif_file, out_tif_file, crs="EPSG:3857"):
 def convert_raster_to_vector(raster_filepath, mask):
     image = Image.fromarray(mask)
     image.save(raster_filepath)
+    image.close()
 
 
 def convert_vector_to_geojson(raster_filepath):
@@ -150,7 +158,7 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
         tile.write(out_image)
         tile.close()
 
-        left += tile_width / 2
+        left += tile_width / tile_stride_factor
 
         if horizontal_last or left >= max_right:
             left = max_left
@@ -170,30 +178,27 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
     print(f"Tiles created - {tile_count - 1}")
 
 
-def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold, model):
+def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
     uint8_type = True
     tile = rasterio.open(os.path.join(tiles_folder, tile_path))
 
     if tile.dtypes[0] != 'uint8':
         uint8_type = False
 
-    red = tile.read(3)
-    green = tile.read(2)
-    blue = tile.read(1)
-    array = np.dstack((red, green, blue))
-    array = np.nan_to_num(array)
+    tile = np.dstack((tile.read(3), tile.read(2), tile.read(1)))
+    tile = np.nan_to_num(tile)
 
-    if np.max(array) == 0:
+    if np.max(tile) == 0:
         return []
 
     if not uint8_type:
-        array = array.astype(np.float32, order='C') / 32768.0
-        array = (array * 255 / np.max(array)).astype('uint8')
+        tile = tile.astype(np.float32, order='C') / 32768.0
+        tile = (tile * 255 / np.max(tile)).astype('uint8')
 
-    tensor = transforms.ToTensor()(array)
+    tile = transforms.ToTensor()(tile)
 
     with torch.no_grad():
-        prediction = model.forward([tensor])
+        prediction = segmentation_model.model.forward([tile])
 
     masks = []
 
@@ -206,27 +211,21 @@ def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold, mode
             mask = mask.astype('uint8') * 255
             masks.append([mask, score])
 
-    tile.close()
     return masks
 
 
-def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, num_classes, tile_width, tile_height):
-    segmentation_model = InstanceSegmentationModel(
-        model_checkpoint=model_path,
-        num_classes=num_classes,
-        device='cuda'
-    )
+def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, tile_stride_factor, tile_width,
+                  tile_height):
     masks_folder = working_folder['Masks']
     tiles_folder = working_folder['Tiles']
-    crop_tif(image_path, tile_width, tile_height, out_folder=tiles_folder)
+    crop_tif(image_path, tile_width, tile_height, tile_stride_factor=tile_stride_factor, out_folder=tiles_folder)
     masks_confidence_mapping = {}
 
     for tile_idx, tile_path in enumerate(os.listdir(tiles_folder)):
         if tile_idx % 10 == 0:
             logger.info(f"Tile index: {tile_idx}")
 
-        masks = process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold,
-                                 model=segmentation_model.model)
+        masks = process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold)
         logger.info(f"{tile_path}: {len(masks)}")
 
         for mask_idx, mask in enumerate(masks):
@@ -290,8 +289,8 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
     return wkt
 
 
-def predict_regions(tif_file_name, num_classes, tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
-                    mask_pixel_threshold=80):
+def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
+                    mask_pixel_threshold=80, tile_stride_factor=2):
     logger.info(f"Image path: {tif_file_name}")
     temp_crs_converted_file_name = 'tif_file_with_epsg_3857.tiff'
     tif_file_folder = Folder(tif_file_name)
@@ -304,7 +303,7 @@ def predict_regions(tif_file_name, num_classes, tile_width=20000, tile_height=20
         image_path=out_filepath,
         confidence=confidence,
         mask_pixel_threshold=mask_pixel_threshold,
-        num_classes=num_classes,
+        tile_stride_factor=tile_stride_factor,
         tile_width=tile_width,
         tile_height=tile_height,
         working_folder=working_folder
@@ -324,12 +323,12 @@ def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
 
 if __name__ == "__main__":
     wkt = predict_regions(
-        tif_file_name=data_folder['Tombov']['temp.tiff'],
+        tif_file_name=data_folder['Individual']['2020-06-01.tif'],
         tile_width=20000,
         tile_height=20000,
-        num_classes=2,
         confidence=0.5,
-        intersection_threshold=0.8,
+        intersection_threshold=0.5,
+        tile_stride_factor=2,
         mask_pixel_threshold=80
     )
-    save_wkt(wkt, "best_model.gpkg")
+    save_wkt(wkt, "best_model_50_overlap.gpkg")
