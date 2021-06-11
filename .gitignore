@@ -140,8 +140,10 @@ dmypy.json
 cython_debug/
 
 # My additions
+*.geojson
 *.gpkg
 *.pt
+*.txt
 .idea
 __pycache__
 caches

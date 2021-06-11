@@ -175,7 +175,7 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
             vertical_last = True
 
     source_file.close()
-    print(f"Tiles created - {tile_count - 1}")
+    print(f"Tiles created - {tile_count}")
 
 
 def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
@@ -245,7 +245,7 @@ def show_image_and_tile_shapes(image_path, tile_width, tile_height):
     image.close()
 
 
-def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_mapping):
+def read_shapes_from_geojson(masks_folder, confidence_mapping):
     shapes = []
 
     for geojson in os.listdir(masks_folder):
@@ -261,7 +261,11 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
             except ValueError:
                 continue
 
-    sorted_polygons = sorted(shapes, key=lambda polygon: polygon[1])
+    shapes = sorted(shapes, key=lambda polygon: polygon[1])
+    return shapes
+
+
+def remove_overlapping_shapes(sorted_polygons, threshold):
     shapes = []
 
     for i in range(len(sorted_polygons)):
@@ -277,12 +281,38 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
             inter1 = area / sorted_polygons[i][0].area
             inter2 = area / sorted_polygons[j][0].area
 
-            if inter1 > (1 - intersection_threshold) or inter2 > (1 - intersection_threshold):
+            if inter1 > (1 - threshold) or inter2 > (1 - threshold):
                 append = False
                 break
 
         if append:
             shapes.append(sorted_polygons[i][0])
+
+    return shapes
+
+
+def remove_intersections(figures):
+    shapes = []
+
+    for i in range(len(figures)):
+        shape = figures[i]
+
+        for j in range(i + 1, len(figures)):
+            shape = shape.symmetric_difference(figures[j]).difference(figures[j])
+
+        if shape.geom_type == "MultiPolygon":
+            for polygon in shape:
+                shapes.append(polygon)
+        else:
+            shapes.append(shape)
+
+    return shapes
+
+
+def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_mapping):
+    shapes = read_shapes_from_geojson(masks_folder, confidence_mapping)
+    shapes = remove_overlapping_shapes(shapes, intersection_threshold)
+    shapes = remove_intersections(shapes)
 
     logger.info(f'Number of fields found: {len(shapes)}')
     wkt = shapely.geometry.MultiPolygon(shapes).wkt
@@ -322,8 +352,9 @@ def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
 
 
 if __name__ == "__main__":
+    file_name = "krasnodar_8bit"
     wkt = predict_regions(
-        tif_file_name=data_folder['Individual']['2020-06-01.tif'],
+        tif_file_name=data_folder['Krasnodar'][f'{file_name}.tif'],
         tile_width=20000,
         tile_height=20000,
         confidence=0.5,
@@ -331,4 +362,4 @@ if __name__ == "__main__":
         tile_stride_factor=2,
         mask_pixel_threshold=80
     )
-    save_wkt(wkt, "best_model_50_overlap.gpkg")
+    save_wkt(wkt, f'{file_name}.gpkg')
