@@ -16,7 +16,6 @@ from pathlib import Path
 from PIL import Image
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import shape
-from shutil import copyfile
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -254,7 +253,7 @@ def read_shapes_from_geojson(masks_folder, confidence_mapping):
     logger.info("Reading shapes from GeoJSON files...")
     shapes = []
 
-    for geojson in os.listdir(masks_folder):
+    for geojson in tqdm(os.listdir(masks_folder)):
         name, ext = os.path.splitext(geojson)
 
         if ext == ".geojson":
@@ -374,7 +373,8 @@ def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confiden
         intersection_threshold=intersection_threshold,
         confidence_mapping=mapping
     )
-    working_folder.clear()
+    working_folder['Masks'].clear()
+    working_folder['Tiles'].clear()
     return multipolygon_wkt
 
 
@@ -382,19 +382,7 @@ def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
     gpd.GeoSeries(shapely.wkt.loads(wkt), crs=crs).to_file(filepath, driver)
 
 
-# if __name__ == "__main__":
-    # safe_folder_path = data_folder['Downloaded_Data']['S2A_MSIL2A_20210409T052641_N0300_R105_T44TMS_20210409T083822.SAFE']
-    # convert_safe_to_tif(safe_folder_path)
-
-    # for i in range(2, 10):
-    #     # file_name = "1"
-    #     wkt = predict_regions(
-    #         tif_file_name=data_folder['Uzbekistan']['images'][f'{str(i)}_10m.tif'],
-    #         tile_width=2000,
-    #         tile_height=2000,
-    #         confidence=0.5,
-    #         intersection_threshold=0.5,
-    #         tile_stride_factor=2,
-    #         mask_pixel_threshold=80
-    #     )
-    #     save_wkt(wkt, f'Uzbekistan_{str(i)}.gpkg')
+if __name__ == "__main__":
+    safe_folder_path = data_folder['Tashkent']['S2A_MSIL2A_20210409T052641_N0300_R105_T44TMS_20210409T083822.SAFE']
+    wkt = predict_safe_regions(safe_folder_path)
+    save_wkt(wkt, 'temp.gpkg')
