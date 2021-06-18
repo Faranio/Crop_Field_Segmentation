@@ -10,12 +10,15 @@ import shapely.wkt
 import torch
 
 from lgblkb_tools import Folder, logger
+from lgblkb_tools.gdal_datasets import GdalMan
 from lgblkb_tools.pathify import get_name
 from pathlib import Path
 from PIL import Image
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import shape
+from shutil import copyfile
 from torchvision import transforms
+from tqdm import tqdm
 
 from config import cache_folder, data_folder, model_path
 from utils import get_instance_segmentation_model
@@ -43,6 +46,7 @@ segmentation_model = InstanceSegmentationModel(
 
 
 def convert_crs(tif_file, out_tif_file, crs="EPSG:3857"):
+    logger.info("Converting image CRS...")
     source_file = rasterio.open(tif_file)
     transform, width, height = calculate_default_transform(source_file.crs,
                                                            crs,
@@ -216,6 +220,7 @@ def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
 
 def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, tile_stride_factor, tile_width,
                   tile_height):
+    logger.info("Predicting field masks...")
     masks_folder = working_folder['Masks']
     tiles_folder = working_folder['Tiles']
     crop_tif(image_path, tile_width, tile_height, tile_stride_factor=tile_stride_factor, out_folder=tiles_folder)
@@ -246,6 +251,7 @@ def show_image_and_tile_shapes(image_path, tile_width, tile_height):
 
 
 def read_shapes_from_geojson(masks_folder, confidence_mapping):
+    logger.info("Reading shapes from GeoJSON files...")
     shapes = []
 
     for geojson in os.listdir(masks_folder):
@@ -266,9 +272,10 @@ def read_shapes_from_geojson(masks_folder, confidence_mapping):
 
 
 def remove_overlapping_shapes(sorted_polygons, threshold):
+    logger.info("Removing overlapping shapes...")
     shapes = []
 
-    for i in range(len(sorted_polygons)):
+    for i in tqdm(range(len(sorted_polygons))):
         append = True
 
         for j in range(i + 1, len(sorted_polygons)):
@@ -292,9 +299,10 @@ def remove_overlapping_shapes(sorted_polygons, threshold):
 
 
 def remove_intersections(figures):
+    logger.info("Removing intersections...")
     shapes = []
 
-    for i in range(len(figures)):
+    for i in tqdm(range(len(figures))):
         shape = figures[i]
 
         for j in range(i + 1, len(figures)):
@@ -316,6 +324,29 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
 
     logger.info(f'Number of fields found: {len(shapes)}')
     wkt = shapely.geometry.MultiPolygon(shapes).wkt
+    return wkt
+
+
+def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, confidence=0.5,
+                         intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80):
+    safe_folder = Folder(safe_folder_path)
+    band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
+    working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
+    out_filepath = working_folder[safe_folder.name + ".tif"]
+    GdalMan(q=True, lazy=True).gdal_merge(
+        *band_paths,
+        separate=True,
+        out_filepath=out_filepath
+    )
+    wkt = predict_regions(
+        tif_file_name=out_filepath,
+        tile_width=tile_width,
+        tile_height=tile_height,
+        confidence=confidence,
+        intersection_threshold=intersection_threshold,
+        tile_stride_factor=tile_stride_factor,
+        mask_pixel_threshold=mask_pixel_threshold
+    )
     return wkt
 
 
@@ -351,15 +382,19 @@ def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
     gpd.GeoSeries(shapely.wkt.loads(wkt), crs=crs).to_file(filepath, driver)
 
 
-if __name__ == "__main__":
-    file_name = "krasnodar_8bit"
-    wkt = predict_regions(
-        tif_file_name=data_folder['Krasnodar'][f'{file_name}.tif'],
-        tile_width=20000,
-        tile_height=20000,
-        confidence=0.5,
-        intersection_threshold=0.5,
-        tile_stride_factor=2,
-        mask_pixel_threshold=80
-    )
-    save_wkt(wkt, f'{file_name}.gpkg')
+# if __name__ == "__main__":
+    # safe_folder_path = data_folder['Downloaded_Data']['S2A_MSIL2A_20210409T052641_N0300_R105_T44TMS_20210409T083822.SAFE']
+    # convert_safe_to_tif(safe_folder_path)
+
+    # for i in range(2, 10):
+    #     # file_name = "1"
+    #     wkt = predict_regions(
+    #         tif_file_name=data_folder['Uzbekistan']['images'][f'{str(i)}_10m.tif'],
+    #         tile_width=2000,
+    #         tile_height=2000,
+    #         confidence=0.5,
+    #         intersection_threshold=0.5,
+    #         tile_stride_factor=2,
+    #         mask_pixel_threshold=80
+    #     )
+    #     save_wkt(wkt, f'Uzbekistan_{str(i)}.gpkg')

@@ -142,6 +142,7 @@ cython_debug/
 # My additions
 *.geojson
 *.gpkg
+*.pem
 *.pt
 *.txt
 .idea
