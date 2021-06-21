@@ -9,3 +9,4 @@ data_folder = project_folders.data_folder
 downloaded_folder = data_folder['Downloaded_Data']
 model_path = data_folder['Model']['mAP_66.111.pt']
 train_folder = data_folder['Training_Data']
+broker_url = settings.project.broker_url

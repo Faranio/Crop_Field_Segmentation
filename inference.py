@@ -127,8 +127,7 @@ def save_geojson_coordinates(mask_idx, mask, masks_folder, tiles_folder, tile_pa
 def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2, out_folder='Temp'):
     out_folder = Folder(out_folder)
     source_file = rasterio.open(tif_file)
-    max_left, max_top = source_file.transform * (0, 0)
-    max_right, max_bottom = source_file.transform * (source_file.width, source_file.height)
+    max_left, max_bottom, max_right, max_top = source_file.bounds
     left, top = max_left, max_top
     tile_count = 0
     horizontal_last = False
@@ -326,7 +325,7 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
     return wkt
 
 
-def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, confidence=0.5,
+def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, confidence=0.7,
                          intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80):
     safe_folder = Folder(safe_folder_path)
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
@@ -380,9 +379,3 @@ def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confiden
 
 def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
     gpd.GeoSeries(shapely.wkt.loads(wkt), crs=crs).to_file(filepath, driver)
-
-
-if __name__ == "__main__":
-    safe_folder_path = data_folder['Tashkent']['S2A_MSIL2A_20210409T052641_N0300_R105_T44TMS_20210409T083822.SAFE']
-    wkt = predict_safe_regions(safe_folder_path)
-    save_wkt(wkt, 'temp.gpkg')
