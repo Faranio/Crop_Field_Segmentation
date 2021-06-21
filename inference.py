@@ -305,7 +305,7 @@ def remove_intersections(figures):
         shape = figures[i]
 
         for j in range(i + 1, len(figures)):
-            shape = shape.symmetric_difference(figures[j]).difference(figures[j])
+            shape = shape.difference(figures[j])
 
         if shape.geom_type == "MultiPolygon":
             for polygon in shape:
@@ -332,7 +332,7 @@ def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, 
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
     out_filepath = working_folder[safe_folder.name + ".tif"]
-    GdalMan(q=True, lazy=True).gdal_merge(
+    GdalMan(q=True, lazy=False).gdal_merge(
         *band_paths,
         separate=True,
         out_filepath=out_filepath

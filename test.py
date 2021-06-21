@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 
 from config import data_folder
 from inference import predict_safe_regions, save_wkt
@@ -12,8 +13,8 @@ def download_safe_data(file_name, folder_name):
         safe_folder_path = f'/storage/caches/imagiflow/safe_products/{row}.SAFE'
         wkt = predict_safe_regions(
             safe_folder_path=safe_folder_path,
-            tile_width=20000,
-            tile_height=20000
+            tile_width=5000,
+            tile_height=5000
         )
         save_wkt(
             wkt=wkt,
@@ -27,5 +28,5 @@ def main(file_names):
 
 
 if __name__ == "__main__":
-    file_names = [("russia_products.csv", "Russia"), ("toshkent_products.csv", "Tashkent")]
+    file_names = [("toshkent_products.csv", "Tashkent"), ("russia_products.csv", "Russia")]
     main(file_names)
