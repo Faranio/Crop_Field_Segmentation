@@ -1,25 +1,25 @@
-import geopandas as gpd
 import json
-import numpy as np
 import os
+from pathlib import Path
+
+import geopandas as gpd
+import numpy as np
 import rasterio
 import rasterio.mask
 import shapely
 import shapely.errors
 import shapely.wkt
 import torch
-
+from PIL import Image
 from lgblkb_tools import Folder, logger
 from lgblkb_tools.gdal_datasets import GdalMan
 from lgblkb_tools.pathify import get_name
-from pathlib import Path
-from PIL import Image
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import shape
 from torchvision import transforms
 from tqdm import tqdm
 
-from config import cache_folder, data_folder, model_path
+from config import cache_folder, model_path
 from utils import get_instance_segmentation_model
 
 
@@ -204,14 +204,15 @@ def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
 
     masks = []
 
-    for idx in range(len(prediction[0]['scores'])):
-        score = prediction[0]['scores'][idx].item()
+    if prediction:
+        for idx in range(len(prediction[0]['scores'])):
+            score = prediction[0]['scores'][idx].item()
 
-        if score > confidence:
-            mask = prediction[0]['masks'][idx, 0].mul(255).byte().cpu().numpy()
-            mask = mask < mask_pixel_threshold
-            mask = mask.astype('uint8') * 255
-            masks.append([mask, score])
+            if score > confidence:
+                mask = prediction[0]['masks'][idx, 0].mul(255).byte().cpu().numpy()
+                mask = mask < mask_pixel_threshold
+                mask = mask.astype('uint8') * 255
+                masks.append([mask, score])
 
     return masks
 
