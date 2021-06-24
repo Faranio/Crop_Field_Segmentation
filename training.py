@@ -16,8 +16,7 @@ import utils
 
 from dataset import FieldsDataset
 
-
-MAX_MAP = 66.111
+MAX_MAP = 0
 
 
 class TrainingPipeline:
@@ -50,7 +49,7 @@ class TrainingPipeline:
         self.initialize_datasets()
         self.initialize_data_loaders()
 
-        if not os.path.exists(config.train_folder['Train']['coco_train.pickle']):
+        if not os.path.exists(config.data_folder['Train']['coco_train.pickle']):
             coco_utils.save_as_coco_dataset(self.data_loader_train, self.data_loader_valid, self.data_loader_test)
 
     def initialize_datasets(self):
@@ -84,7 +83,7 @@ class TrainingPipeline:
 
     def initialize_model(self):
         self.model = utils.get_instance_segmentation_model(self.num_classes)
-        self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(MAX_MAP)}.pt"))
+        # self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(MAX_MAP)}.pt"))
         self.model.to(self._device)
         self.iou_types = ['bbox', 'segm']
         self._params = [p for p in self.model.parameters() if p.requires_grad]
@@ -93,9 +92,9 @@ class TrainingPipeline:
         # wandb.init(project="Crop_Field_Segmentation")
         self.initialize_model()
         self.optimizer = torch.optim.SGD(self._params,
-                                    lr=max_lr,
-                                    momentum=0.9,
-                                    weight_decay=0.0005)
+                                         lr=max_lr,
+                                         momentum=0.9,
+                                         weight_decay=0.0005)
         self.lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.optimizer, base_lr=base_lr, max_lr=max_lr,
                                                               step_size_up=1, step_size_down=len(self._dataset_train)
                                                                                              // self.batch_size)
@@ -117,7 +116,7 @@ class TrainingPipeline:
         # wandb.log({'Mask mAP': stats[0] * 100})
         return stats[0]
 
-    def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=30, print_freq=10):
+    def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=50, print_freq=10):
         global MAX_MAP
         self.initialize_tools(base_lr=base_lr, max_lr=max_lr)
 
@@ -125,8 +124,9 @@ class TrainingPipeline:
             self.model.train()
             header = f'Epoch: [{epoch + 1}]'
 
-            for iter_i, (images, targets) in enumerate(self.metric_logger_var.log_every(self.data_loader_train, print_freq,
-                                                                                   header)):
+            for iter_i, (images, targets) in enumerate(
+                    self.metric_logger_var.log_every(self.data_loader_train, print_freq,
+                                                     header)):
                 images = list(image.to(self._device) for image in images)
                 targets = [{k: v.to(self._device) for k, v in t.items()} for t in targets]
                 loss_dict = self.model(images, targets)
@@ -174,7 +174,7 @@ class TrainingPipeline:
 
                 current_mAP = self.get_eval_stats(metric_temp_logger)
 
-                if current_mAP > MAX_MAP:
+                if current_mAP > MAX_MAP :
                     lgblkb_tools.logger.info(f"\n\nSaving the model. Mask mAP: {current_mAP * 100}%\n\n")
                     MAX_MAP = current_mAP
                     torch.save(self.model.state_dict(), "mAP_{:.3f}.pt".format(current_mAP * 100))
@@ -185,10 +185,10 @@ class TrainingPipeline:
 def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     num_classes = 2
-    batch_size = 2
-    train_folder_paths = config.train_folder.glob_search("**/Train")
-    valid_folder_paths = config.train_folder.glob_search("**/Valid")
-    test_folder_paths = config.train_folder.glob_search("**/Test")
+    batch_size = 4
+    train_folder_paths = config.data_folder.glob_search("**/Train")
+    valid_folder_paths = config.data_folder.glob_search("**/Valid")
+    test_folder_paths = config.data_folder.glob_search("**/Test")
 
     train_pipeline = TrainingPipeline(device=device,
                                       num_classes=num_classes,

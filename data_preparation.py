@@ -10,10 +10,12 @@ import shapely.wkt
 
 import config
 
+from inference import convert_crs
+
 
 def crop_tif(label_geometries, tif_file, out_folder, width=20000, height=20000, tile_stride_factor=2, count=0):
     ext_len = 3
-    polygon_validity_threshold = 0.1
+    polygon_validity_threshold = 0.9
     src = rasterio.open(tif_file)
 
     with open(tif_file[:-ext_len] + "txt", 'r') as file:
@@ -66,9 +68,9 @@ def crop_tif(label_geometries, tif_file, out_folder, width=20000, height=20000, 
                              "width": out_image.shape[2],
                              "transform": out_transform})
 
-            if random.random() < 0.05:
+            if random.random() < 0.02:
                 save_folder = out_folder['Test']
-            elif random.random() < 0.15:
+            elif random.random() < 0.10:
                 save_folder = out_folder['Valid']
             else:
                 save_folder = out_folder['Train']
@@ -110,8 +112,8 @@ def crop_tif(label_geometries, tif_file, out_folder, width=20000, height=20000, 
 
 
 def crop_dataset_into_tiles():
-    dataset_folder = config.downloaded_folder
-    labels_file = config.downloaded_folder['final.geojson']
+    dataset_folder = config.data_folder
+    labels_file = config.data_folder['labels.geojson']
     count = 0
     labels_df = gpd.read_file(labels_file)
 
@@ -120,8 +122,5 @@ def crop_dataset_into_tiles():
 
         if ext == ".tif":
             tif_file = dataset_folder[file]
-            count = crop_tif(labels_df, tif_file, config.train_folder, count=count)
-
-
-def main():
-    crop_dataset_into_tiles()
+            convert_crs(tif_file, tif_file)
+            count = crop_tif(labels_df, tif_file, config.data_folder, count=count)

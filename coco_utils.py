@@ -62,9 +62,9 @@ def convert_to_coco_api(ds, title):
 
 
 def save_as_coco_dataset(data_loader_train, data_loader_valid, data_loader_test):
-    convert_to_coco_api(data_loader_train.dataset, config.train_folder['Train']['coco_train.pickle'])
-    convert_to_coco_api(data_loader_valid.dataset, config.train_folder['Valid']['coco_valid.pickle'])
-    convert_to_coco_api(data_loader_test.dataset, config.train_folder['Test']['coco_test.pickle'])
+    convert_to_coco_api(data_loader_train.dataset, config.data_folder['Train']['coco_train.pickle'])
+    convert_to_coco_api(data_loader_valid.dataset, config.data_folder['Valid']['coco_valid.pickle'])
+    convert_to_coco_api(data_loader_test.dataset, config.data_folder['Test']['coco_test.pickle'])
 
 
 class CocoEvaluator(object):

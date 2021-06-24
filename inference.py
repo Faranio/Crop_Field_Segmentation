@@ -16,6 +16,7 @@ from lgblkb_tools.gdal_datasets import GdalMan
 from lgblkb_tools.pathify import get_name
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import shape
+from shapely.ops import unary_union
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -318,8 +319,8 @@ def remove_intersections(figures):
 
 def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_mapping):
     shapes = read_shapes_from_geojson(masks_folder, confidence_mapping)
-    shapes = remove_overlapping_shapes(shapes, intersection_threshold)
-    shapes = remove_intersections(shapes)
+    # shapes = remove_overlapping_shapes(shapes, intersection_threshold)
+    # shapes = remove_intersections(shapes)
 
     logger.info(f'Number of fields found: {len(shapes)}')
     wkt = shapely.geometry.MultiPolygon(shapes).wkt
