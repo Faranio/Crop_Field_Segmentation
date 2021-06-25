@@ -124,3 +124,7 @@ def crop_dataset_into_tiles():
             tif_file = dataset_folder[file]
             convert_crs(tif_file, tif_file)
             count = crop_tif(labels_df, tif_file, config.data_folder, count=count)
+
+
+if __name__ == "__main__":
+    crop_dataset_into_tiles()

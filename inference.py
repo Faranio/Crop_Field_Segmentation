@@ -319,8 +319,8 @@ def remove_intersections(figures):
 
 def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_mapping):
     shapes = read_shapes_from_geojson(masks_folder, confidence_mapping)
-    # shapes = remove_overlapping_shapes(shapes, intersection_threshold)
-    # shapes = remove_intersections(shapes)
+    shapes = remove_overlapping_shapes(shapes, intersection_threshold)
+    shapes = remove_intersections(shapes)
 
     logger.info(f'Number of fields found: {len(shapes)}')
     wkt = shapely.geometry.MultiPolygon(shapes).wkt
@@ -374,6 +374,7 @@ def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confiden
         intersection_threshold=intersection_threshold,
         confidence_mapping=mapping
     )
+    # TODO: Clear the whole folder
     working_folder['Masks'].clear()
     working_folder['Tiles'].clear()
     return multipolygon_wkt

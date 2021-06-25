@@ -16,7 +16,7 @@ import utils
 
 from dataset import FieldsDataset
 
-MAX_MAP = 0
+MAX_MAP = 52.521
 
 
 class TrainingPipeline:
@@ -83,7 +83,7 @@ class TrainingPipeline:
 
     def initialize_model(self):
         self.model = utils.get_instance_segmentation_model(self.num_classes)
-        # self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(MAX_MAP)}.pt"))
+        self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(MAX_MAP)}.pt"))
         self.model.to(self._device)
         self.iou_types = ['bbox', 'segm']
         self._params = [p for p in self.model.parameters() if p.requires_grad]
@@ -174,10 +174,10 @@ class TrainingPipeline:
 
                 current_mAP = self.get_eval_stats(metric_temp_logger)
 
-                if current_mAP > MAX_MAP :
+                if current_mAP * 100 > MAX_MAP:
                     lgblkb_tools.logger.info(f"\n\nSaving the model. Mask mAP: {current_mAP * 100}%\n\n")
                     MAX_MAP = current_mAP
-                    torch.save(self.model.state_dict(), "mAP_{:.3f}.pt".format(current_mAP * 100))
+                    torch.save(self.model.state_dict(), "./data/Model/mAP_{:.3f}.pt".format(current_mAP * 100))
 
         lgblkb_tools.logger.info("\n\n\nFinished!")
 
@@ -185,7 +185,7 @@ class TrainingPipeline:
 def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     num_classes = 2
-    batch_size = 4
+    batch_size = 8
     train_folder_paths = config.data_folder.glob_search("**/Train")
     valid_folder_paths = config.data_folder.glob_search("**/Valid")
     test_folder_paths = config.data_folder.glob_search("**/Test")
