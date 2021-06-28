@@ -16,8 +16,6 @@ import utils
 
 from dataset import FieldsDataset
 
-MAX_MAP = 52.521
-
 
 class TrainingPipeline:
     def __init__(self, device, num_classes, train_folder, valid_folder, test_folder=None, batch_size=2):
@@ -44,6 +42,7 @@ class TrainingPipeline:
         self.lr_scheduler = None
         self.metric_logger_var = None
 
+        self.max_mAP = 52.521
         lgblkb_tools.logger.info(f"Device used is: {self._device}")
 
         self.initialize_datasets()
@@ -83,8 +82,9 @@ class TrainingPipeline:
 
     def initialize_model(self):
         self.model = utils.get_instance_segmentation_model(self.num_classes)
-        self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(MAX_MAP)}.pt"))
+        self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(self.max_mAP)}.pt"))
         self.model.to(self._device)
+        # self.model = torch.nn.DataParallel(self.model)
         self.iou_types = ['bbox', 'segm']
         self._params = [p for p in self.model.parameters() if p.requires_grad]
 
@@ -117,7 +117,6 @@ class TrainingPipeline:
         return stats[0]
 
     def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=50, print_freq=10):
-        global MAX_MAP
         self.initialize_tools(base_lr=base_lr, max_lr=max_lr)
 
         for epoch in range(num_epochs):
@@ -172,20 +171,20 @@ class TrainingPipeline:
                     evaluator_time = time.time() - evaluator_time
                     metric_temp_logger.update(model_time=model_time, evaluator_time=evaluator_time)
 
-                current_mAP = self.get_eval_stats(metric_temp_logger)
+                current_mAP = self.get_eval_stats(metric_temp_logger) * 100
 
-                if current_mAP * 100 > MAX_MAP:
-                    lgblkb_tools.logger.info(f"\n\nSaving the model. Mask mAP: {current_mAP * 100}%\n\n")
-                    MAX_MAP = current_mAP
-                    torch.save(self.model.state_dict(), "./data/Model/mAP_{:.3f}.pt".format(current_mAP * 100))
+                if current_mAP > self.max_mAP:
+                    lgblkb_tools.logger.info(f"\n\nSaving the model. Mask mAP: {current_mAP}%\n\n")
+                    self.max_mAP = current_mAP
+                    torch.save(self.model.state_dict(), "./data/Model/mAP_{:.3f}.pt".format(current_mAP))
 
         lgblkb_tools.logger.info("\n\n\nFinished!")
 
 
 def main():
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     num_classes = 2
-    batch_size = 8
+    batch_size = 4
     train_folder_paths = config.data_folder.glob_search("**/Train")
     valid_folder_paths = config.data_folder.glob_search("**/Valid")
     test_folder_paths = config.data_folder.glob_search("**/Test")
