@@ -16,6 +16,8 @@ import utils
 
 from dataset import FieldsDataset
 
+NUM_WORKERS = 16
+
 
 class TrainingPipeline:
     def __init__(self, device, num_classes, train_folder, valid_folder, test_folder=None, batch_size=2):
@@ -42,7 +44,7 @@ class TrainingPipeline:
         self.lr_scheduler = None
         self.metric_logger_var = None
 
-        self.max_mAP = 52.521
+        self.max_mAP = 0
         lgblkb_tools.logger.info(f"Device used is: {self._device}")
 
         self.initialize_datasets()
@@ -65,24 +67,24 @@ class TrainingPipeline:
         self.data_loader_train = torch.utils.data.DataLoader(self._dataset_train,
                                                              batch_size=self.batch_size,
                                                              shuffle=True,
-                                                             num_workers=self.batch_size,
+                                                             num_workers=NUM_WORKERS,
                                                              collate_fn=utils.collate_fn)
         self.data_loader_valid = torch.utils.data.DataLoader(self._dataset_valid,
                                                              batch_size=self.batch_size,
                                                              shuffle=False,
-                                                             num_workers=self.batch_size,
+                                                             num_workers=NUM_WORKERS,
                                                              collate_fn=utils.collate_fn)
 
         if self.test_folder is not None:
             self.data_loader_test = torch.utils.data.DataLoader(self._dataset_test,
                                                                 batch_size=self.batch_size,
                                                                 shuffle=False,
-                                                                num_workers=self.batch_size,
+                                                                num_workers=NUM_WORKERS,
                                                                 collate_fn=utils.collate_fn)
 
     def initialize_model(self):
         self.model = utils.get_instance_segmentation_model(self.num_classes)
-        self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(self.max_mAP)}.pt"))
+        # self.model.load_state_dict(torch.load(f"./data/Model/mAP_{str(self.max_mAP)}.pt"))
         self.model.to(self._device)
         # self.model = torch.nn.DataParallel(self.model)
         self.iou_types = ['bbox', 'segm']

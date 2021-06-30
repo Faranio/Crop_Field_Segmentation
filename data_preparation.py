@@ -41,7 +41,7 @@ def crop_tif(label_geometries, tif_file, out_folder, width=20000, height=20000, 
     v_last = False
 
     while True:
-        if count % 100 == 0:
+        if count % 100 == 0 and count > 0:
             print(f"[INFO] Count: {count}")
 
         right = left + width
@@ -61,6 +61,7 @@ def crop_tif(label_geometries, tif_file, out_folder, width=20000, height=20000, 
                                                          (right, top, 0.0),
                                                          (right, bottom, 0.0),
                                                          (left, bottom, 0.0)]]}]
+
             out_image, out_transform = rasterio.mask.mask(src, temp, crop=True)
             out_meta = src.meta
             out_meta.update({"driver": "GTiff",
@@ -124,7 +125,3 @@ def crop_dataset_into_tiles():
             tif_file = dataset_folder[file]
             convert_crs(tif_file, tif_file)
             count = crop_tif(labels_df, tif_file, config.data_folder, count=count)
-
-
-if __name__ == "__main__":
-    crop_dataset_into_tiles()

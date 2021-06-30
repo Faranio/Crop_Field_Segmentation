@@ -19,7 +19,7 @@ def make_single_prediction(row, folder_name):
         safe_folder_path=file_name,
         tile_width=5000,
         tile_height=5000,
-        confidence=0.6,
+        confidence=0.5,
         intersection_threshold=0.5
     )
     save_wkt(

@@ -9,11 +9,11 @@ import pycocotools.cocoeval
 import pycocotools.mask
 import torch
 import torch.distributed
-import tqdm
 
 import config
 
 
+@lgblkb_tools.logger.trace()
 def convert_to_coco_api(ds, title):
     coco_ds = pycocotools.coco.COCO()
     ann_id = 1
@@ -21,7 +21,7 @@ def convert_to_coco_api(ds, title):
     categories = set()
     ds_length = len(ds)
 
-    for img_idx in tqdm.tqdm(range(ds_length)):
+    for img_idx in range(ds_length):
         img, targets = ds[img_idx]
         image_id = targets['image_id'].item()
         img_dict = {'id': image_id, 'height': img.shape[-2], 'width': img.shape[-1]}
@@ -61,6 +61,7 @@ def convert_to_coco_api(ds, title):
     pickle.dump(coco_ds, open(title, 'wb'))
 
 
+@lgblkb_tools.logger.trace()
 def save_as_coco_dataset(data_loader_train, data_loader_valid, data_loader_test):
     convert_to_coco_api(data_loader_train.dataset, config.data_folder['Train']['coco_train.pickle'])
     convert_to_coco_api(data_loader_valid.dataset, config.data_folder['Valid']['coco_valid.pickle'])

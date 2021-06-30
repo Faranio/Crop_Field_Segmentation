@@ -8,6 +8,7 @@ import torch
 from PIL import Image, ImageDraw
 
 
+@lgblkb_tools.logger.trace()
 def get_target(info, idx):
     shp_file = gpd.read_file(info['coords'][idx])
     image = rasterio.open(info['img'][idx])
@@ -16,6 +17,8 @@ def get_target(info, idx):
     meters_in_pixel = (right - left) / img_width
     boxes = []
     masks = []
+
+    lgblkb_tools.logger.debug(f"Current target idx: {idx} out of 4200")
 
     for i in range(len(shp_file)):
         if shp_file.geometry[i] is None or shp_file.geometry[i].type == "Point":
