@@ -10,52 +10,78 @@ import pycocotools.mask
 import torch
 import torch.distributed
 
+from functools import partial
+from multiprocessing import Manager, Pool
+
 import config
+
+from training import NUM_WORKERS
+
+categories = set()
+
+
+def parallel_coco_execution(idx, ds, target_dataset):
+    img, targets = ds[idx]
+    image_id = targets['image_id'].item()
+    img_dict = {'id': image_id, 'height': img.shape[-2], 'width': img.shape[-1]}
+    target_dataset['images'].append(img_dict)
+    bboxes = targets['boxes']
+    bboxes[:, 2:] -= bboxes[:, :2]
+    bboxes = bboxes.tolist()
+    labels = targets['labels'].tolist()
+    areas = targets['area'].tolist()
+    iscrowd = targets['iscrowd'].tolist()
+
+    if 'masks' in targets:
+        masks = targets['masks'].permute(0, 2, 1).contiguous().permute(0, 2, 1)
+
+    num_objs = len(bboxes)
+
+    for i in range(num_objs):
+        ann = {'image_id': image_id,
+               'bbox': bboxes[i],
+               'category_id': labels[i],
+               'area': areas[i],
+               'iscrowd': iscrowd[i],
+               'id': idx}
+        categories.add(labels[i])
+
+        if 'masks' in targets:
+            ann['segmentation'] = pycocotools.mask.encode(masks[i].numpy())
+
+        target_dataset['annotations'].append(ann)
+
+    length = len(target_dataset['images'])
+
+    if length > 0 and length % 25 == 0:
+        lgblkb_tools.logger.debug(f"Progress: [{length} out of 4200]")
 
 
 @lgblkb_tools.logger.trace()
 def convert_to_coco_api(ds, title):
     coco_ds = pycocotools.coco.COCO()
-    ann_id = 1
-    target_dataset = {"images": [], "categories": [], "annotations": []}
-    categories = set()
     ds_length = len(ds)
 
-    for img_idx in range(ds_length):
-        img, targets = ds[img_idx]
-        image_id = targets['image_id'].item()
-        img_dict = {'id': image_id, 'height': img.shape[-2], 'width': img.shape[-1]}
-        target_dataset['images'].append(img_dict)
-        bboxes = targets['boxes']
-        bboxes[:, 2:] -= bboxes[:, :2]
-        bboxes = bboxes.tolist()
-        labels = targets['labels'].tolist()
-        areas = targets['area'].tolist()
-        iscrowd = targets['iscrowd'].tolist()
+    with Manager() as manager:
+        manager_dataset = manager.dict()
+        manager_dataset['images'] = manager.list()
+        manager_dataset['categories'] = manager.list()
+        manager_dataset['annotations'] = manager.list()
 
-        if 'masks' in targets:
-            masks = targets['masks'].permute(0, 2, 1).contiguous().permute(0, 2, 1)
+        with Pool(NUM_WORKERS) as pool:
+            pool.map(partial(
+                parallel_coco_execution,
+                ds=ds,
+                target_dataset=manager_dataset
+            ), range(ds_length))
 
-        num_objs = len(bboxes)
+        target_dataset = dict()
+        target_dataset['images'] = list(manager_dataset['images'])
+        target_dataset['categories'] = [{"supercategory": "field",
+                                         "id": i,
+                                         "name": "field"} for i in sorted(categories)]
+        target_dataset['annotations'] = list(manager_dataset['annotations'])
 
-        for i in range(num_objs):
-            ann = {'image_id': image_id,
-                   'bbox': bboxes[i],
-                   'category_id': labels[i],
-                   'area': areas[i],
-                   'iscrowd': iscrowd[i],
-                   'id': ann_id}
-            categories.add(labels[i])
-
-            if 'masks' in targets:
-                ann['segmentation'] = pycocotools.mask.encode(masks[i].numpy())
-
-            target_dataset['annotations'].append(ann)
-            ann_id += 1
-
-    target_dataset['categories'] = [{"supercategory": "field",
-                                     "id": i,
-                                     "name": "field"} for i in sorted(categories)]
     coco_ds.dataset = target_dataset
     coco_ds.createIndex()
     pickle.dump(coco_ds, open(title, 'wb'))
