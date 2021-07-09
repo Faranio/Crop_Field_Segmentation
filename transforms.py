@@ -7,6 +7,9 @@ from typing import Tuple, Dict, Optional
 
 
 class Compose(object):
+    """
+    Compose several transformations.
+    """
     def __init__(self, transforms):
         self.transforms = transforms
 
@@ -17,6 +20,9 @@ class Compose(object):
 
 
 class RandomHorizontalFlip(T.RandomHorizontalFlip):
+    """
+    Perform random horizontal flip of an image with corresponding masks changes.
+    """
     def forward(self, image: Tensor, target: Optional[Dict[str, Tensor]] = None) -> \
             Tuple[Tensor, Optional[Dict[str, Tensor]]]:
         if torch.rand(1) < self.p:
@@ -32,6 +38,9 @@ class RandomHorizontalFlip(T.RandomHorizontalFlip):
 
 
 class ToTensor(nn.Module):
+    """
+    Convert the image into a PyTorch tensor.
+    """
     def forward(self, image: Tensor, target: Optional[Dict[str, Tensor]] = None) -> \
             Tuple[Tensor, Optional[Dict[str, Tensor]]]:
         image = F.to_tensor(image)
@@ -39,6 +48,9 @@ class ToTensor(nn.Module):
 
 
 class RandomPhotometricDistort(nn.Module):
+    """
+    Apply random photometric distortions on an image.
+    """
     def __init__(self, contrast: Tuple[float] = (0.5, 1.5), saturation: Tuple[float] = (0.5, 1.5),
                  hue: Tuple[float] = (-0.05, 0.05), brightness: Tuple[float] = (0.875, 1.125), p: float = 0.5):
         super().__init__()
@@ -92,8 +104,14 @@ class RandomPhotometricDistort(nn.Module):
 
 
 def get_train_transform():
+    """
+    Training data transformations.
+    """
     return Compose([RandomPhotometricDistort(), ToTensor()])
 
 
 def get_test_transform():
+    """
+    Validation data transformations.
+    """
     return Compose([ToTensor()])

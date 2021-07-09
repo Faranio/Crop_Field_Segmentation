@@ -16,12 +16,16 @@ import utils
 
 from dataset import FieldsDataset
 
+# Choose GPU that is free
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 NUM_WORKERS = 16
 
 
 class TrainingPipeline:
+    """
+    Main training pipeline.
+    """
     def __init__(self, device, num_classes, train_folder, valid_folder, test_folder=None, batch_size=2):
         self._device = device
         self.train_folder = train_folder
@@ -124,6 +128,9 @@ class TrainingPipeline:
         del self._dataset_test
 
     def get_eval_stats(self, metric_temp_logger):
+        """
+        Show evaluation metrics (mAP).
+        """
         metric_temp_logger.synchronize_between_processes()
         lgblkb_tools.logger.info(f"Averaged stats: {metric_temp_logger}")
         self.valid_coco_evaluator.synchronize_between_processes()
@@ -133,6 +140,9 @@ class TrainingPipeline:
         return stats[0]
 
     def train(self, base_lr=0.000005, max_lr=0.005, num_epochs=50, print_freq=10):
+        """
+        Main training loop.
+        """
         self.initialize_tools(base_lr=base_lr, max_lr=max_lr)
 
         lgblkb_tools.logger.info("Starting the training process...")
@@ -205,6 +215,7 @@ class TrainingPipeline:
                     del outputs
                     del res
 
+                # Save the model if new mAP is the largest one
                 current_mAP = self.get_eval_stats(metric_temp_logger) * 100
 
                 if current_mAP > self.max_mAP:

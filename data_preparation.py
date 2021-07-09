@@ -14,6 +14,9 @@ from inference import convert_crs
 
 
 def crop_tif(label_geometries, tif_file, out_folder, width=7500, height=7500, tile_stride_factor=2, count=0):
+    """
+    Create a dataset of tiles by cropping .tif files with corresponding field geometries.
+    """
     ext_len = 3
     polygon_validity_threshold = 0.9
     src = rasterio.open(tif_file)
@@ -113,6 +116,9 @@ def crop_tif(label_geometries, tif_file, out_folder, width=7500, height=7500, ti
 
 
 def crop_dataset_into_tiles():
+    """
+    Main loop for cropping .tif files into tiles with field coordinates.
+    """
     dataset_folder = config.data_folder
     labels_file = config.data_folder['labels.geojson']
     count = 0

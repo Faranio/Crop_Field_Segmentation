@@ -24,6 +24,9 @@ from utils import get_instance_segmentation_model
 
 
 class InstanceSegmentationModel:
+    """
+    Define Instance Segmentation Model parameters.
+    """
     def __init__(self, model_checkpoint, num_classes, device='cpu'):
         self.num_classes = num_classes
         self.model_checkpoint = model_checkpoint
@@ -45,6 +48,9 @@ segmentation_model = InstanceSegmentationModel(
 
 
 def convert_crs(tif_file, out_tif_file, crs="EPSG:3857"):
+    """
+    Convert the CRS of an image.
+    """
     logger.info("Converting image CRS...")
     source_file = rasterio.open(tif_file)
     transform, width, height = calculate_default_transform(source_file.crs,
@@ -78,12 +84,18 @@ def convert_crs(tif_file, out_tif_file, crs="EPSG:3857"):
 
 
 def convert_raster_to_vector(raster_filepath, mask):
+    """
+    Convert raster image to vector image.
+    """
     image = Image.fromarray(mask)
     image.save(raster_filepath)
     image.close()
 
 
 def convert_vector_to_geojson(raster_filepath):
+    """
+    Convert field vector into coordinates saved in GeoJSON file.
+    """
     geojson_filepath = Path(raster_filepath).with_suffix('.geojson')
     command = f"potrace -b geojson {raster_filepath} -o {geojson_filepath}"
     os.system(command)
@@ -91,6 +103,9 @@ def convert_vector_to_geojson(raster_filepath):
 
 
 def adjust_coordinates(geojson_coordinates, image_left, image_bottom, source_file, tile_width, tile_height):
+    """
+    Convert pixels to georeferenced coordinates.
+    """
     for feature_idx in range(len(geojson_coordinates['features'])):
         for coord_idx in range(len(geojson_coordinates['features'][feature_idx]['geometry']['coordinates'])):
             for i in range(len(geojson_coordinates['features'][feature_idx]['geometry']['coordinates'][coord_idx])):
@@ -104,6 +119,9 @@ def adjust_coordinates(geojson_coordinates, image_left, image_bottom, source_fil
 
 
 def save_geojson_coordinates(mask_idx, mask, masks_folder, tiles_folder, tile_path, tile_width, tile_height):
+    """
+    Save field masks as coordinates into a separate GeoJSON file.
+    """
     raster_filepath = Path(masks_folder[f'{get_name(tile_path)}_{mask_idx}.bmp'])
     convert_raster_to_vector(raster_filepath, mask)
     geojson_filepath = convert_vector_to_geojson(raster_filepath)
@@ -125,6 +143,9 @@ def save_geojson_coordinates(mask_idx, mask, masks_folder, tiles_folder, tile_pa
 
 
 def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2, out_folder='Temp'):
+    """
+    Crop the main .tif file into tiles with provided with and height.
+    """
     out_folder = Folder(out_folder)
     source_file = rasterio.open(tif_file)
     max_left, max_bottom, max_right, max_top = source_file.bounds
@@ -181,6 +202,9 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
 
 
 def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
+    """
+    Predict field boundaries in a provided tile image.
+    """
     uint8_type = True
     tile = rasterio.open(os.path.join(tiles_folder, tile_path))
 
@@ -219,6 +243,9 @@ def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
 
 def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, tile_stride_factor, tile_width,
                   tile_height):
+    """
+    Predict all field masks in a .tif image.
+    """
     logger.info("Predicting field masks...")
     masks_folder = working_folder['Masks']
     tiles_folder = working_folder['Tiles']
@@ -241,6 +268,9 @@ def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, 
 
 
 def show_image_and_tile_shapes(image_path, tile_width, tile_height):
+    """
+    Show image and tile shape information.
+    """
     image = rasterio.open(image_path)
     logger.info(f"[Tile width] X [Tile height]: [{tile_width}] X [{tile_height}]")
     logger.info(f"[Image tile width] X [Image tile height]: [{image.bounds[2] - image.bounds[0]}] X "
@@ -250,6 +280,9 @@ def show_image_and_tile_shapes(image_path, tile_width, tile_height):
 
 
 def read_shapes_from_geojson(masks_folder, confidence_mapping):
+    """
+    Read all polygon and multi-polygon coordinates from temporary GeoJSON files.
+    """
     logger.info("Reading shapes from GeoJSON files...")
     shapes = []
 
@@ -271,6 +304,9 @@ def read_shapes_from_geojson(masks_folder, confidence_mapping):
 
 
 def remove_overlapping_shapes(sorted_polygons, threshold):
+    """
+    Remove polygons with lower confidence that highly overlap with other polygons that have higher confidence.
+    """
     logger.info("Removing overlapping shapes...")
     shapes = []
 
@@ -298,6 +334,9 @@ def remove_overlapping_shapes(sorted_polygons, threshold):
 
 
 def remove_intersections(figures):
+    """
+    Cut intersections of polygons with lower confidence values.
+    """
     logger.info("Removing intersections...")
     shapes = []
 
@@ -320,6 +359,9 @@ def remove_intersections(figures):
 
 
 def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_mapping):
+    """
+    Remove overlapping polygons and remaining intersections. Returns resultant WKT string.
+    """
     shapes = read_shapes_from_geojson(masks_folder, confidence_mapping)
     shapes = remove_overlapping_shapes(shapes, intersection_threshold)
     shapes = remove_intersections(shapes)
@@ -331,6 +373,10 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
 
 def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, confidence=0.7,
                          intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80):
+    """
+    Predict fields in a provided .SAFE folder. Merges bands to get a single .tif file and then performs predictions.
+    Returns single MultiPolygon WKT string.
+    """
     safe_folder = Folder(safe_folder_path)
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
@@ -354,6 +400,9 @@ def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, 
 
 def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
                     mask_pixel_threshold=80, tile_stride_factor=2):
+    """
+    Predict fields in a provided .tif file. Returns single MultiPolygon WKT string.
+    """
     logger.info(f"Image path: {tif_file_name}")
     temp_crs_converted_file_name = 'tif_file_with_epsg_3857.tiff'
     tif_file_folder = Folder(tif_file_name)
@@ -383,4 +432,7 @@ def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confiden
 
 
 def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):
+    """
+    Save WKT string in a GeoPackage file.
+    """
     gpd.GeoSeries(shapely.wkt.loads(wkt), crs=crs).to_file(filepath, driver)

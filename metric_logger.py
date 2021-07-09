@@ -1,3 +1,5 @@
+# Script for logging training loop (mAP, loss, time, memory, etc.)
+
 import collections
 import datetime
 import lgblkb_tools

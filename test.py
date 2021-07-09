@@ -1,3 +1,5 @@
+# This script is used only 1 time for making inference for Russian and Uzbekistani regions.
+
 import os
 import pandas as pd
 from lgblkb_tools import logger

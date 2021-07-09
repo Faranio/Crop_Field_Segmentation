@@ -9,6 +9,9 @@ from PIL import Image, ImageDraw
 
 
 def get_target(info, idx):
+    """
+    Get COCO labels for a single tile image.
+    """
     shp_file = gpd.read_file(info['coords'][idx])
     image = rasterio.open(info['img'][idx])
     left, bottom, right, top = image.bounds
@@ -96,6 +99,9 @@ def get_target(info, idx):
 
 
 class FieldsDataset(torch.utils.data.Dataset):
+    """
+    PyTorch dataset for fields.
+    """
     def __init__(self, folder_paths, transforms=None):
         self.folder_paths = folder_paths
         self.transforms = transforms

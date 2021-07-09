@@ -1,3 +1,5 @@
+# Attempt to parallelize inference of many images
+
 import celery
 import pandas as pd
 

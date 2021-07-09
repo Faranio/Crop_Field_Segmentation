@@ -21,6 +21,9 @@ categories = set()
 
 
 def parallel_coco_execution(idx, ds, target_dataset):
+    """
+    Parallel conversion of a dataset into COCO dataset.
+    """
     img, targets = ds[idx]
     image_id = targets['image_id'].item()
     img_dict = {'id': image_id, 'height': img.shape[-2], 'width': img.shape[-1]}
@@ -59,6 +62,9 @@ def parallel_coco_execution(idx, ds, target_dataset):
 
 @lgblkb_tools.logger.trace()
 def convert_to_coco_api(ds, title):
+    """
+    Conversion of a single dataset into a COCO dataset (has multiprocessing).
+    """
     coco_ds = pycocotools.coco.COCO()
     ds_length = len(ds)
 
@@ -89,6 +95,9 @@ def convert_to_coco_api(ds, title):
 
 @lgblkb_tools.logger.trace()
 def save_as_coco_dataset(data_loader_train, data_loader_valid, data_loader_test):
+    """
+    Save datasets as COCO datasets for better validation (of metrics).
+    """
     convert_to_coco_api(data_loader_train.dataset, config.data_folder['Train']['coco_train.pickle'])
     convert_to_coco_api(data_loader_valid.dataset, config.data_folder['Valid']['coco_valid.pickle'])
     convert_to_coco_api(data_loader_test.dataset, config.data_folder['Test']['coco_test.pickle'])
