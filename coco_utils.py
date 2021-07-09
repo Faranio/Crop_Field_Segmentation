@@ -54,7 +54,7 @@ def parallel_coco_execution(idx, ds, target_dataset):
     length = len(target_dataset['images'])
 
     if length > 0 and length % 25 == 0:
-        lgblkb_tools.logger.debug(f"Progress: [{length} out of 4200]")
+        lgblkb_tools.logger.debug(f"Progress: [{length} out of {len(ds)}]")
 
 
 @lgblkb_tools.logger.trace()
