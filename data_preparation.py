@@ -13,7 +13,7 @@ import config
 from inference import convert_crs
 
 
-def crop_tif(label_geometries, tif_file, out_folder, width=20000, height=20000, tile_stride_factor=2, count=0):
+def crop_tif(label_geometries, tif_file, out_folder, width=7500, height=7500, tile_stride_factor=2, count=0):
     ext_len = 3
     polygon_validity_threshold = 0.9
     src = rasterio.open(tif_file)

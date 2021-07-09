@@ -13,6 +13,7 @@ def get_target(info, idx):
     image = rasterio.open(info['img'][idx])
     left, bottom, right, top = image.bounds
     img_height, img_width = image.shape
+    image.close()
     meters_in_pixel = (right - left) / img_width
     boxes = []
     masks = []
@@ -109,20 +110,18 @@ class FieldsDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         img_path = self.info['img'][idx]
-        src = rasterio.open(img_path)
-        red = src.read(3)
-        green = src.read(2)
-        blue = src.read(1)
-        src = np.dstack((red, green, blue))
+        tile = rasterio.open(img_path)
+        src = np.dstack((tile.read(3), tile.read(2), tile.read(1)))
+        tile.close()
         src = np.nan_to_num(src)
         src = (src * 255 / np.max(src)).astype('uint8')
-        image = Image.fromarray(src)
+        src = Image.fromarray(src)
         target = get_target(self.info, idx)
 
         if self.transforms is not None:
-            image, target = self.transforms(image, target)
+            src, target = self.transforms(src, target)
 
-        return image, target
+        return src, target
 
     def __len__(self):
         return len(self.info['img'])
