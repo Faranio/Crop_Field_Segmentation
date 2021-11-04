@@ -3,8 +3,6 @@ services:
   crop_field_segmentation:
     image: "hub.egistic.kz/meteo:latest"
     restart: "always"
-    volumes:
-      - "/:/"
     networks:
       - "redis_network"
     command: bash -c "celery -A celery_worker worker -Q crop_field_segmentation -P threads --loglevel=INFO"
