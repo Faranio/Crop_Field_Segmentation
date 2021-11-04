@@ -7,7 +7,6 @@ from inference import predict_safe_regions
 
 app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
 app.config_from_object(settings.CELERY.config)
-app = Celery('celery_worker', broker=broker_url, backend='rpc://')
 
 
 @app.task(name='crop_field_segmentation', queue='crop_field_segmentation')
