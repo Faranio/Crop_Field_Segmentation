@@ -1,5 +1,5 @@
-FROM nvidia/cuda:11.0-runtime-ubuntu20.04
-MAINTAINER Farkhad Kuanyshkereyev, farkhad.kuanyshkereyev@gmail.com
+FROM nvidia/cuda:11.0-runtime-ubuntu20.04 as base
+MAINTAINER Dias Bakhtiyarov, dbakhtiyarov@nu.edu.kz
 
 ENV LANG=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive \
@@ -23,7 +23,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &&\
     python3 -m venv $VIRTUAL_ENV
 
-RUN pip3 install -U pip wheel setuptools numpy &&\
+RUN pip3 install -U pip wheel --no-cache-dir setuptools==58.0 numpy &&\
     pip3 install --global-option=build_ext \
                 --global-option="-I/usr/include/gdal" \
                 GDAL==$(gdal-config --version) &&\
@@ -36,26 +36,26 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     pip3 install poetry ansible &&\
     ansible-galaxy install lgblkb.lgblkb_deployer
 
-ARG USER_ID
-ARG GROUP_ID
-ARG USERNAME
-ARG PROJECT_DIR
+#ARG USER_ID
+#ARG GROUP_ID
+#ARG USERNAME
+#ARG PROJECT_DIR
+#
+#RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
+#    useradd -l -u ${USER_ID} -g ${USERNAME} ${USERNAME} &&\
+#    install -d -m 0755 -o ${USERNAME} -g ${USERNAME} /home/${USERNAME} &&\
+#    chown --changes --silent --no-dereference --recursive \
+#     ${USER_ID}:${GROUP_ID} \
+#        /home/${USERNAME}
 
-RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
-    useradd -l -u ${USER_ID} -g ${USERNAME} ${USERNAME} &&\
-    install -d -m 0755 -o ${USERNAME} -g ${USERNAME} /home/${USERNAME} &&\
-    chown --changes --silent --no-dereference --recursive \
-     ${USER_ID}:${GROUP_ID} \
-        /home/${USERNAME}
+#COPY provision/roles/base/files/.requirements.txt .
+#RUN pip3 install --no-cache-dir -r .requirements.txt
+#COPY requirements_base.txt .
+#RUN pip3 install --no-cache-dir -r requirements_base.txt
+#COPY requirements.txt .
+#RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY provision/roles/base/files/.requirements.txt .
-RUN pip3 install --no-cache-dir -r .requirements.txt
-COPY requirements_base.txt .
-RUN pip3 install --no-cache-dir -r requirements_base.txt
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-USER ${USERNAME}
+#USER ${USERNAME}
 
 FROM base as production
 COPY requirements.txt .
