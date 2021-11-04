@@ -10,3 +10,8 @@ data_folder = project_folders.data_folder
 model_folder = data_folder['02_model']
 model_path = model_folder['Max_Model.pt']
 broker_url = settings.project.broker_url
+
+import pkg_resources
+installed_packages = pkg_resources.working_set
+installed_packages_list = sorted(["%s==%s" % (i.key, i.version) for i in installed_packages])
+print(installed_packages_list)
