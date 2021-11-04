@@ -20,7 +20,7 @@ from shapely.ops import unary_union
 from torchvision import transforms
 from tqdm import tqdm
 
-from config import cache_folder, model_path
+from config import cache_folder, data_folder, model_path
 from utils import get_instance_segmentation_model
 
 
@@ -328,7 +328,7 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
 
 
 def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, confidence=0.7,
-                         intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80):
+                         intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80, save=False):
     safe_folder = Folder(safe_folder_path)
     band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
@@ -347,6 +347,11 @@ def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, 
         tile_stride_factor=tile_stride_factor,
         mask_pixel_threshold=mask_pixel_threshold
     )
+    
+    if save:
+        file_name = safe_folder_path.split('/')[-1]
+        save_wkt(wkt, data_folder['03_results'][f'{file_name}.gpkg'])
+        
     return wkt
 
 
