@@ -1,6 +1,7 @@
 FROM nvidia/cuda:11.0-runtime-ubuntu20.04 as base
 MAINTAINER Farkhad Kuanyshkereyev, farkhad.kuanyshkereyev@gmail.com
 
+COPY . /usr/src/app
 WORKDIR /usr/src/app
 
 ENV LANG=C.UTF-8 \
@@ -60,7 +61,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 #USER ${USERNAME}
 
 FROM base as production
-#COPY requirements.txt /usr/src/app
 RUN mkdir -p /usr/src/app/caches /usr/src/app/data
 RUN pip install --no-cache-dir -r requirements.txt
 RUN adduser --disabled-password --gecos '' myuser
