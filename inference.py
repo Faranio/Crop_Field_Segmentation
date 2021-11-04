@@ -16,7 +16,6 @@ from lgblkb_tools.gdal_datasets import GdalMan
 from lgblkb_tools.pathify import get_name
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import shape
-from shapely.ops import unary_union
 from torchvision import transforms
 from tqdm import tqdm
 
