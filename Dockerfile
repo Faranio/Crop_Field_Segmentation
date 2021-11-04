@@ -42,11 +42,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 #ARG GROUP_ID
 #ARG USERNAME
 #ARG PROJECT_DIR
-<<<<<<< HEAD
-#
-=======
 
->>>>>>> e2f169867bd545d5c68b9f47250728a167fee023
 #RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
 #    useradd -l -u ${USER_ID} -g ${USERNAME} ${USERNAME} &&\
 #    install -d -m 0755 -o ${USERNAME} -g ${USERNAME} /home/${USERNAME} &&\
