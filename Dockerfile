@@ -1,5 +1,5 @@
-FROM phusion/baseimage:focal-1.0.0alpha1-amd64 as base
-#FROM nvidia/cuda:11.0-runtime-ubuntu20.04 as base
+#FROM phusion/baseimage:focal-1.0.0alpha1-amd64 as base
+FROM nvidia/cuda:11.0-runtime-ubuntu20.04 as base
 MAINTAINER Farkhad Kuanyshkereyev, farkhad.kuanyshkereyev@gmail.com
 
 COPY . /usr/src/app
@@ -40,17 +40,17 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     pip install poetry ansible &&\
     ansible-galaxy install lgblkb.lgblkb_deployer
 
-#ARG USER_ID
-#ARG GROUP_ID
-#ARG USERNAME
-#ARG PROJECT_DIR
+ARG USER_ID
+ARG GROUP_ID
+ARG USERNAME
+ARG PROJECT_DIR
 
-#RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
-#    useradd -l -u ${USER_ID} -g ${USERNAME} ${USERNAME} &&\
-#    install -d -m 0755 -o ${USERNAME} -g ${USERNAME} /home/${USERNAME} &&\
-#    chown --changes --silent --no-dereference --recursive \
-#     ${USER_ID}:${GROUP_ID} \
-#        /home/${USERNAME}
+RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
+    useradd -l -u ${USER_ID} -g ${USERNAME} ${USERNAME} &&\
+    install -d -m 0755 -o ${USERNAME} -g ${USERNAME} /home/${USERNAME} &&\
+    chown --changes --silent --no-dereference --recursive \
+     ${USER_ID}:${GROUP_ID} \
+        /home/${USERNAME}
 
 #COPY provision/roles/base/files/.requirements.txt .
 #RUN pip3 install --no-cache-dir -r .requirements.txt
@@ -59,7 +59,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 #COPY requirements.txt .
 #RUN pip3 install --no-cache-dir -r requirements.txt
 
-#USER ${USERNAME}
+USER ${USERNAME}
 
 FROM base as production
 RUN mkdir -p /usr/src/app/caches /usr/src/app/data
