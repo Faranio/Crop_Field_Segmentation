@@ -7,6 +7,6 @@ project_folders = box.Box({k: lgblkb_tools.Folder(v, assert_exists=True) for k, 
                           frozen_box=True)
 cache_folder = project_folders.cache_folder
 data_folder = project_folders.data_folder
-model_folder = project_folders.model_folder
-model_path = model_folder['mAP_61.172.pt']
+model_folder = data_folder['02_model']
+model_path = model_folder['Max_Model.pt']
 broker_url = settings.project.broker_url
