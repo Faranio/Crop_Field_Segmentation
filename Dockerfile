@@ -63,3 +63,4 @@ FROM base as production
 COPY requirements.txt /usr/src/app
 RUN mkdir -p /usr/src/app/caches /usr/src/app/data
 RUN pip install --no-cache-dir -r requirements.txt
+RUN adduser --disabled-password --gecos '' myuser
