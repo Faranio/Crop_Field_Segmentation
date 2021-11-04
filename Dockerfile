@@ -1,4 +1,5 @@
-FROM nvidia/cuda:11.0-runtime-ubuntu20.04 as base
+FROM phusion/baseimage:focal-1.0.0alpha1-amd64 as base
+#FROM nvidia/cuda:11.0-runtime-ubuntu20.04 as base
 MAINTAINER Farkhad Kuanyshkereyev, farkhad.kuanyshkereyev@gmail.com
 
 COPY . /usr/src/app
