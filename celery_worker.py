@@ -44,6 +44,12 @@ for file in safe_file_paths:
             cur_file_path = os.path.join(folder_path, file)
             resultant_file_paths.append(cur_file_path)
             
-print(resultant_file_paths)
-
-make_prediction(resultant_file_paths)
+for file_path in resultant_file_paths:
+    predict_safe_regions(
+        safe_folder_path=file_path,
+        tile_width=20000,
+        tile_height=20000,
+        confidence=0.8,
+        intersection_threshold=0.5,
+        save=True
+    )
