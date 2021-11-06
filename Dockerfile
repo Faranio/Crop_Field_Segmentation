@@ -27,8 +27,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &&\
     python3 -m venv $VIRTUAL_ENV
 
-RUN . /opt/venv/bin/activate
-
 RUN pip3 install -U pip wheel --no-cache-dir setuptools==58.0 numpy &&\
     pip3 install --global-option=build_ext \
                 --global-option="-I/usr/include/gdal" \
@@ -66,5 +64,4 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 FROM base as production
 RUN mkdir -p /usr/src/app/caches /usr/src/app/data
 RUN pip3 install --no-cache-dir -r requirements.txt
-CMD . /opt/venv/bin/activate
 #RUN adduser --disabled-password --gecos '' myuser
