@@ -20,5 +20,5 @@ import sys
 from pkg_resources import load_entry_point
 
 print(
-    load_entry_point('celery', 'console_scripts', 'celery')()
+    load_entry_point('celery==5.0.5', 'console_scripts', 'celery')()
 )
