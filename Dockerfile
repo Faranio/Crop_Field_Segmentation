@@ -27,8 +27,8 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &&\
     python3 -m venv $VIRTUAL_ENV
 
-RUN pip install -U pip wheel --no-cache-dir setuptools==58.0 numpy &&\
-    pip install --global-option=build_ext \
+RUN pip3 install -U pip wheel --no-cache-dir setuptools==58.0 numpy &&\
+    pip3 install --global-option=build_ext \
                 --global-option="-I/usr/include/gdal" \
                 GDAL==$(gdal-config --version) &&\
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -37,7 +37,7 @@ FROM base as builder
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
     ansible sshpass \
      &&\
-    pip install poetry ansible &&\
+    pip3 install poetry ansible &&\
     ansible-galaxy install lgblkb.lgblkb_deployer
 
 ARG USER_ID
@@ -63,5 +63,5 @@ USER ${USERNAME}
 
 FROM base as production
 RUN mkdir -p /usr/src/app/caches /usr/src/app/data
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 RUN adduser --disabled-password --gecos '' myuser
