@@ -1,7 +1,7 @@
 version: "3"
 services:
   crop_field_segmentation:
-    image: "hub.egistic.kz/meteo:latest"
+    image: "hub.egistic.kz/crop_field_segmentation:latest"
     restart: "always"
     volumes:
       - ".:/usr/src/app"
