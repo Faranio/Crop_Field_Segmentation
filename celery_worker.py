@@ -46,4 +46,4 @@ for file in safe_file_paths:
             
 print(resultant_file_paths)
 
-# make_prediction(resultant_file_paths)
+make_prediction(resultant_file_paths)
