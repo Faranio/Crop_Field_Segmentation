@@ -40,7 +40,7 @@ class InstanceSegmentationModel:
 segmentation_model = InstanceSegmentationModel(
     model_checkpoint=model_path,
     num_classes=2,
-    device='cuda'
+    device='cpu'
 )
 
 
