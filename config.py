@@ -19,6 +19,6 @@ print(installed_packages_list)
 import sys
 from pkg_resources import load_entry_point
 
-sys.exit(
+print(
     load_entry_point('celery', 'console_scripts', 'celery')()
 )
