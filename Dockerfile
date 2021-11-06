@@ -40,17 +40,17 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     pip3 install poetry ansible &&\
     ansible-galaxy install lgblkb.lgblkb_deployer
 
-ARG USER_ID
-ARG GROUP_ID
-ARG USERNAME
-ARG PROJECT_DIR
+#ARG USER_ID
+#ARG GROUP_ID
+#ARG USERNAME
+#ARG PROJECT_DIR
 
-RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
-    useradd -l -u ${USER_ID} -g ${USERNAME} ${USERNAME} &&\
-    install -d -m 0755 -o ${USERNAME} -g ${USERNAME} /home/${USERNAME} &&\
-    chown --changes --silent --no-dereference --recursive \
-     ${USER_ID}:${GROUP_ID} \
-        /home/${USERNAME}
+#RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
+#    useradd -l -u ${USER_ID} -g ${USERNAME} ${USERNAME} &&\
+#    install -d -m 0755 -o ${USERNAME} -g ${USERNAME} /home/${USERNAME} &&\
+#    chown --changes --silent --no-dereference --recursive \
+#     ${USER_ID}:${GROUP_ID} \
+#        /home/${USERNAME}
 
 #COPY provision/roles/base/files/.requirements.txt .
 #RUN pip3 install --no-cache-dir -r .requirements.txt
@@ -59,9 +59,9 @@ RUN groupadd -g ${GROUP_ID} ${USERNAME} &&\
 #COPY requirements.txt .
 #RUN pip3 install --no-cache-dir -r requirements.txt
 
-USER ${USERNAME}
+#USER ${USERNAME}
 
 FROM base as production
 RUN mkdir -p /usr/src/app/caches /usr/src/app/data
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN adduser --disabled-password --gecos '' myuser
+#RUN adduser --disabled-password --gecos '' myuser
