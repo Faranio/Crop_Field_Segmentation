@@ -1,4 +1,5 @@
 import celery
+import os
 
 from celery import Celery
 
@@ -19,3 +20,30 @@ def make_prediction(file_paths):
         intersection_threshold=0.5,
         save=True
     ) for file_path in file_paths]).delay().get(disable_sync_subtasks=False)
+
+
+folder_path = '/usr/src/app/data/04_test'
+safe_file_paths = os.listdir(folder_path)
+resultant_file_paths = []
+
+for file in safe_file_paths:
+    keywords = [f'20211{x}' for x in [
+        '024',
+        '025',
+        '026',
+        '027',
+        '028',
+        '029',
+        '030',
+        '031',
+        '101'
+    ]]
+    
+    for keyword in keywords:
+        if keyword in file:
+            cur_file_path = os.path.join(folder_path, file)
+            resultant_file_paths.append(cur_file_path)
+            
+print(resultant_file_paths)
+
+# make_prediction(resultant_file_paths)

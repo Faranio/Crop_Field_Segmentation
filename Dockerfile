@@ -40,5 +40,5 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     ansible-galaxy install lgblkb.lgblkb_deployer
 
 FROM base as production
-RUN mkdir -p /usr/src/app/caches /usr/src/app/data
+RUN mkdir -p /usr/src/app/caches /usr/src/app/data /usr/src/app/data/04_test
 RUN pip3 install --no-cache-dir -r requirements.txt
