@@ -3,7 +3,7 @@ import os
 
 from celery import Celery
 
-from config import broker_url, settings
+from config import broker_url, data_folder, settings
 from inference import predict_safe_regions
 
 app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
@@ -45,6 +45,11 @@ for file in safe_file_paths:
             resultant_file_paths.append(cur_file_path)
             
 for file_path in resultant_file_paths:
+    file_name = file_path.split('/')[-1]
+    
+    if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
+        continue
+        
     predict_safe_regions(
         safe_folder_path=file_path,
         tile_width=20000,
