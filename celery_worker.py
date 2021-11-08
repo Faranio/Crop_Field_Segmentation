@@ -5,23 +5,10 @@ import shutil
 from celery import Celery
 
 from config import broker_url, data_folder, settings
-from inference import predict_safe_regions
+# from inference import predict_safe_regions
 
 app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
 app.config_from_object(settings.CELERY.config)
-
-
-@app.task(name='crop_field_segmentation', queue='crop_field_segmentation')
-def make_prediction(file_paths):
-    celery.group([predict_safe_regions.s(
-        safe_folder_path=file_path,
-        tile_width=20000,
-        tile_height=20000,
-        confidence=0.8,
-        intersection_threshold=0.5,
-        save=True
-    ) for file_path in file_paths]).delay().get(disable_sync_subtasks=False)
-
 
 folder_path = '/usr/src/app/temp'
 safe_file_paths = os.listdir(folder_path)
@@ -61,17 +48,20 @@ for file_path in resultant_file_paths:
     
 resultant_file_paths = os.listdir(data_folder['04_test'])
 
-for file_path in resultant_file_paths:
-    file_name = file_path.split('/')[-1]
-    
-    if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
-        continue
-        
-    predict_safe_regions(
-        safe_folder_path=file_path,
-        tile_width=20000,
-        tile_height=20000,
-        confidence=0.8,
-        intersection_threshold=0.5,
-        save=True
-    )
+print(f"safe_file_paths: {safe_file_paths}")
+print(f"resultant_file_paths: {resultant_file_paths}")
+
+# for file_path in resultant_file_paths:
+#     file_name = file_path.split('/')[-1]
+#
+#     if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
+#         continue
+#
+#     predict_safe_regions(
+#         safe_folder_path=file_path,
+#         tile_width=20000,
+#         tile_height=20000,
+#         confidence=0.8,
+#         intersection_threshold=0.5,
+#         save=True
+#     )
