@@ -44,7 +44,7 @@ for file_path in resultant_file_paths:
     
     if num_files < 4:
         shutil.rmtree(data_folder['04_test'][file_name].path)
-        copy_tree(file_path, data_folder['04_test'][file_name].path)
+        copy_tree(os.path.join(folder_path, file_path), data_folder['04_test'][file_name].path)
 
     print(f"Copied {count} files out of {total}.")
 
