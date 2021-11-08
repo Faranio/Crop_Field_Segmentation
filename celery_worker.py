@@ -44,10 +44,10 @@ for file_path in resultant_file_paths:
 
     if num_files < 4:
         for file in files:
-            if os.path.exists(data_folder['04_test'][file_name][file].path):
+            if os.path.exists(data_folder['04_test'][file_name][file]):
                 continue
                 
-            shutil.copyfile(os.path.join(folder_path, file_path, file), data_folder['04_test'][file_name][file].path)
+            shutil.copyfile(os.path.join(folder_path, file_path, file), data_folder['04_test'][file_name][file])
             
     count += 1
 
