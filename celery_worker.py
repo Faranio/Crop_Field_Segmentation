@@ -23,7 +23,7 @@ def make_prediction(file_paths):
     ) for file_path in file_paths]).delay().get(disable_sync_subtasks=False)
 
 
-folder_path = '/usr/src/app/data/04_test'
+folder_path = '/usr/src/app/temp'
 safe_file_paths = os.listdir(folder_path)
 resultant_file_paths = []
 
@@ -45,9 +45,17 @@ for file in safe_file_paths:
             cur_file_path = os.path.join(folder_path, file)
             resultant_file_paths.append(cur_file_path)
             
+count = 0
+total = len(resultant_file_paths)
+            
 for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
-    shutil.copytree(file_path, data_folder['05_data'][file_name])
+    shutil.copytree(file_path, data_folder['04_test'][file_name])
+    count += 1
+    
+    print(f"Copied {count} files out of {total}.")
+    
+resultant_file_paths = os.listdir(data_folder['04_test'])
 
 for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
