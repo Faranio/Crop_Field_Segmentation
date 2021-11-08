@@ -40,7 +40,7 @@ for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
     files = os.listdir(os.path.join(folder_path, file_path))
 
-    num_files = len(os.listdir(data_folder['04_test'][file_name].path))
+    num_files = len(os.listdir(data_folder['04_test'][file_name]))
 
     if num_files < 4:
         for file in files:
