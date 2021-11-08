@@ -59,10 +59,11 @@ for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
     files = os.listdir(os.path.join(folder_path, file_path))
     
-    print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
+    # print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
+    print(len(files))
     
-    # if len(files) < 4:
-    #     print(f"{file_name}: {files}")
+    if len(files) < 4:
+        print(f"{file_name}: {files}")
 
     # if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
     #     continue
