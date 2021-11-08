@@ -40,7 +40,7 @@ for file_path in resultant_file_paths:
     count += 1
     
     try:
-        copy_tree(file_path, data_folder['04_test'][file_name])
+        copy_tree(file_path, data_folder['04_test'][file_name].path)
     except FileExistsError:
         continue
     
