@@ -55,6 +55,8 @@ resultant_file_paths = os.listdir(folder_path)
 #
 # resultant_file_paths = os.listdir(data_folder['04_test'])
 
+print(resultant_file_paths)
+
 for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
     files = os.listdir(os.path.join(folder_path, file_path))
