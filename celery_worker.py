@@ -11,61 +11,35 @@ from config import broker_url, data_folder, settings
 # app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
 # app.config_from_object(settings.CELERY.config)
 
-folder_path = '/usr/src/app/data/04_test'
-resultant_file_paths = os.listdir(folder_path)
-# resultant_file_paths = []
+temp_folder = '/usr/src/app/temp'
+target_folder = data_folder['04_test']
 
-# for file in safe_file_paths:
-#     keywords = [f'20211{x}' for x in [
-#         '024',
-#         '025',
-#         '026',
-#         '027',
-#         '028',
-#         '029',
-#         '030',
-#         '031',
-#         '101'
-#     ]]
-#
-#     for keyword in keywords:
-#         if keyword in file:
-#             cur_file_path = os.path.join(folder_path, file)
-#             resultant_file_paths.append(cur_file_path)
+temp_folder_files = os.listdir(temp_folder)
+
+for safe_folder in temp_folder_files:
+    safe_folder_name = safe_folder.split('/')[-1]
+    image_files = os.listdir(os.path.join(temp_folder, safe_folder))
+    
+    target_folder_name = target_folder[safe_folder]
+    
+    if os.path.exists(target_folder_name):
+        num_files = len(os.listdir(target_folder_name))
+        
+        if num_files != 4:
+            for file in os.listdir(target_folder_name):
+                os.remove(os.path.join(target_folder_name, file))
             
-# count = 0
-# total = len(resultant_file_paths)
-#
-# for file_path in resultant_file_paths:
-#     file_name = file_path.split('/')[-1]
-#     files = os.listdir(os.path.join(folder_path, file_path))
-#
-#     num_files = len(os.listdir(data_folder['04_test'][file_name]))
-#
-#     if num_files < 4:
-#         for file in files:
-#             if os.path.exists(data_folder['04_test'][file_name][file]):
-#                 continue
-#
-#             shutil.copyfile(os.path.join(folder_path, file_path, file), data_folder['04_test'][file_name][file])
-#
-#     count += 1
-#
-#     print(f"Copied {count} folders out of {total}.")
-#
-# resultant_file_paths = os.listdir(data_folder['04_test'])
+            for file in os.listdir(os.path.join(temp_folder, safe_folder)):
+                shutil.copyfile(os.path.join(temp_folder, safe_folder, file), os.path.join(target_folder_name, file))
+    else:
+        os.mkdir(os.path.join(target_folder_name))
 
-print(resultant_file_paths)
-
-for file_path in resultant_file_paths:
-    file_name = file_path.split('/')[-1]
-    files = os.listdir(os.path.join(folder_path, file_path))
+        for file in os.listdir(os.path.join(temp_folder, safe_folder)):
+            shutil.copyfile(os.path.join(temp_folder, safe_folder, file), os.path.join(target_folder_name, file))
+            
+print("FINISHED COPYING!")
     
     # print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
-    print(len(files))
-    
-    if len(files) < 4:
-        print(f"{file_name}: {files}")
 
     # if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
     #     continue
