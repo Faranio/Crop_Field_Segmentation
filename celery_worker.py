@@ -50,8 +50,12 @@ total = len(resultant_file_paths)
             
 for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
-    shutil.copytree(file_path, data_folder['04_test'][file_name])
     count += 1
+    
+    try:
+        shutil.copytree(file_path, data_folder['04_test'][file_name])
+    except FileExistsError:
+        continue
     
     print(f"Copied {count} files out of {total}.")
     
