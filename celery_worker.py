@@ -1,5 +1,6 @@
 import celery
 import os
+import shutil
 
 from celery import Celery
 
@@ -44,6 +45,9 @@ for file in safe_file_paths:
             cur_file_path = os.path.join(folder_path, file)
             resultant_file_paths.append(cur_file_path)
             
+for file_path in resultant_file_paths:
+    shutil.copytree(file_path, data_folder['05_data'])
+
 for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
     
