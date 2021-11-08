@@ -8,8 +8,8 @@ from distutils.dir_util import copy_tree
 from config import broker_url, data_folder, settings
 # from inference import predict_safe_regions
 
-app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
-app.config_from_object(settings.CELERY.config)
+# app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
+# app.config_from_object(settings.CELERY.config)
 
 folder_path = '/usr/src/app/data/04_test'
 resultant_file_paths = os.listdir(folder_path)

@@ -10,7 +10,8 @@ services:
       - "/mnt/efs/fs1/caches/imagiflow/individual_bands:/usr/src/app/temp"
     networks:
       - "redis_network"
-    command: bash -c "celery -A celery_worker worker -Q crop_field_segmentation -P threads --loglevel=INFO"
+    command: bash -c "python celery_worker.py"
+#    command: bash -c "celery -A celery_worker worker -Q crop_field_segmentation -P threads --loglevel=INFO"
 
 networks:
   redis_network:
