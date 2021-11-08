@@ -55,17 +55,21 @@ resultant_file_paths = os.listdir(folder_path)
 
 for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
+    count = len(os.listdir(os.path.join(folder_path, file_path)))
     
     # print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
+    
+    if count < 4:
+        print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
 
-    if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
-        continue
-
-    predict_safe_regions(
-        safe_folder_path=file_path,
-        tile_width=20000,
-        tile_height=20000,
-        confidence=0.8,
-        intersection_threshold=0.5,
-        save=True
-    )
+    # if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
+    #     continue
+    #
+    # predict_safe_regions(
+    #     safe_folder_path=file_path,
+    #     tile_width=20000,
+    #     tile_height=20000,
+    #     confidence=0.8,
+    #     intersection_threshold=0.5,
+    #     save=True
+    # )
