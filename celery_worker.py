@@ -33,29 +33,31 @@ resultant_file_paths = os.listdir(folder_path)
 #             cur_file_path = os.path.join(folder_path, file)
 #             resultant_file_paths.append(cur_file_path)
             
-# count = 0
-# total = len(resultant_file_paths)
-#
-# for file_path in resultant_file_paths:
-#     file_name = file_path.split('/')[-1]
-#     count += 1
-#
-#     num_files = len(os.listdir(data_folder['04_test'][file_name].path))
-#
-#     if num_files < 4:
-#         shutil.rmtree(data_folder['04_test'][file_name].path)
-#         copy_tree(os.path.join(folder_path, file_path), data_folder['04_test'][file_name].path)
-#
-#     print(f"Copied {count} files out of {total}.")
-
-# resultant_file_paths = os.listdir(data_folder['04_test'])
-
-# print(f"safe_file_paths: {safe_file_paths}")
-# print(f"resultant_file_paths: {resultant_file_paths}")
+count = 0
+total = len(resultant_file_paths)
 
 for file_path in resultant_file_paths:
     file_name = file_path.split('/')[-1]
-    count = len(os.listdir(os.path.join(folder_path, file_path)))
+    files = os.listdir(os.path.join(folder_path, file_path))
+
+    num_files = len(os.listdir(data_folder['04_test'][file_name].path))
+
+    if num_files < 4:
+        for file in files:
+            if os.path.exists(data_folder['04_test'][file_name][file].path):
+                continue
+                
+            shutil.copyfile(os.path.join(folder_path, file_path, file), data_folder['04_test'][file_name][file].path)
+            
+    count += 1
+
+    print(f"Copied {count} folders out of {total}.")
+
+resultant_file_paths = os.listdir(data_folder['04_test'])
+
+for file_path in resultant_file_paths:
+    file_name = file_path.split('/')[-1]
+    files = os.listdir(os.path.join(folder_path, file_path))
     
     # print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
     
