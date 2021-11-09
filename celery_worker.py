@@ -14,30 +14,42 @@ from config import broker_url, data_folder, settings
 temp_folder = '/usr/src/app/temp'
 target_folder = data_folder['04_test']
 
-temp_folder_files = os.listdir(temp_folder)
 
-for safe_folder in temp_folder_files:
-    safe_folder_name = safe_folder.split('/')[-1]
-    image_files = os.listdir(os.path.join(temp_folder, safe_folder))
+def copy_files_from_caches_to_data():
+    temp_folder_files = os.listdir(temp_folder)
     
-    target_folder_name = target_folder[safe_folder]
+    for safe_folder in temp_folder_files:
+        target_folder_name = target_folder[safe_folder]
     
-    if os.path.exists(target_folder_name):
-        num_files = len(os.listdir(target_folder_name))
-        
-        if num_files != 4:
-            for file in os.listdir(target_folder_name):
-                os.remove(os.path.join(target_folder_name, file))
-            
+        if os.path.exists(target_folder_name):
+            num_files = len(os.listdir(target_folder_name))
+    
+            if num_files != 4:
+                for file in os.listdir(target_folder_name):
+                    os.remove(os.path.join(target_folder_name, file))
+    
+                for file in os.listdir(os.path.join(temp_folder, safe_folder)):
+                    shutil.copyfile(os.path.join(temp_folder, safe_folder, file), os.path.join(target_folder_name, file))
+        else:
+            os.mkdir(os.path.join(target_folder_name))
+    
             for file in os.listdir(os.path.join(temp_folder, safe_folder)):
                 shutil.copyfile(os.path.join(temp_folder, safe_folder, file), os.path.join(target_folder_name, file))
-    else:
-        os.mkdir(os.path.join(target_folder_name))
-
-        for file in os.listdir(os.path.join(temp_folder, safe_folder)):
-            shutil.copyfile(os.path.join(temp_folder, safe_folder, file), os.path.join(target_folder_name, file))
+    
+    print("FINISHED COPYING!")
+    
+    
+def check_data_files():
+    files = os.listdir(target_folder)
+    
+    for file in files:
+        file_path = os.path.join(target_folder, files)
+        num_files = len(os.listdir(file_path))
+        
+        if num_files != 4:
+            print(f"{file}: {os.listdir(file_path)}")
             
-print("FINISHED COPYING!")
+check_data_files()
     
     # print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
 
