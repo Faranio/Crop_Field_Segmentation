@@ -1,66 +1,43 @@
-import celery
 import os
-import shutil
 
 from celery import Celery
-from distutils.dir_util import copy_tree
+from lgblkb_tools import logger
 
 from config import broker_url, data_folder, settings
-# from inference import predict_safe_regions
+from inference import predict_safe_regions
 
-# app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
-# app.config_from_object(settings.CELERY.config)
-
-temp_folder = '/usr/src/app/temp'
-target_folder = data_folder['04_test']
+app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
+app.config_from_object(settings.CELERY.config)
 
 
-def copy_files_from_caches_to_data():
-    temp_folder_files = os.listdir(temp_folder)
+@app.task(name='crop_field_segmentation', queue='crop_field_segmentation')
+def perform_predictions(file_paths):
+    for file_path in file_paths:
+        file_name = file_path.split('/')[-1]
+        
+        if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
+            continue
+
+        predict_safe_regions(
+            safe_folder_path=file_path,
+            tile_width=20000,
+            tile_height=20000,
+            confidence=0.8,
+            intersection_threshold=0.5,
+            save=True
+        )
+        
     
-    for safe_folder in temp_folder_files:
-        target_folder_name = target_folder[safe_folder]
-    
-        if os.path.exists(target_folder_name):
-            num_files = len(os.listdir(target_folder_name))
-    
-            if num_files != 4:
-                for file in os.listdir(target_folder_name):
-                    os.remove(os.path.join(target_folder_name, file))
-    
-                for file in os.listdir(os.path.join(temp_folder, safe_folder)):
-                    shutil.copyfile(os.path.join(temp_folder, safe_folder, file), os.path.join(target_folder_name, file))
-        else:
-            os.mkdir(os.path.join(target_folder_name))
-    
-            for file in os.listdir(os.path.join(temp_folder, safe_folder)):
-                shutil.copyfile(os.path.join(temp_folder, safe_folder, file), os.path.join(target_folder_name, file))
-    
-    print("FINISHED COPYING!")
-    
-    
-def check_data_files():
-    files = os.listdir(target_folder)
+if __name__ == '__main__':
+    files = os.listdir(data_folder['04_test'])
+    file_paths = []
     
     for file in files:
-        file_path = os.path.join(target_folder, file)
-        num_files = len(os.listdir(file_path))
-        
-        if num_files != 4:
-            print(f"{file}: {os.listdir(file_path)}")
-            
-check_data_files()
-    
-    # print(f"{file_name}: {os.listdir(os.path.join(folder_path, file_path))}")
+        file_paths.append(os.path.join(data_folder['04_test'], file))
 
-    # if os.path.exists(data_folder['03_results'][f'{file_name}.gpkg']):
-    #     continue
-    #
-    # predict_safe_regions(
-    #     safe_folder_path=file_path,
-    #     tile_width=20000,
-    #     tile_height=20000,
-    #     confidence=0.8,
-    #     intersection_threshold=0.5,
-    #     save=True
-    # )
+    try:
+        app.start()
+        perform_predictions.delay(file_paths).get(disable_sync_subtasks=False)
+    except Exception as exc:
+        logger.exception(str(exc))
+        raise
