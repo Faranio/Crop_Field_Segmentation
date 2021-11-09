@@ -43,7 +43,7 @@ def check_data_files():
     files = os.listdir(target_folder)
     
     for file in files:
-        file_path = os.path.join(target_folder, files)
+        file_path = os.path.join(target_folder, file)
         num_files = len(os.listdir(file_path))
         
         if num_files != 4:
