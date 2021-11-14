@@ -329,7 +329,11 @@ def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_m
 def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, confidence=0.7,
                          intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80, save=False):
     safe_folder = Folder(safe_folder_path)
-    band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
+    try:
+        band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
+    except IndexError:
+        return None
+    
     working_folder = Folder(cache_folder.get_filepath(safe_folder.name))
     out_filepath = working_folder[safe_folder.name + ".tif"]
     GdalMan(q=True, lazy=False).gdal_merge(
