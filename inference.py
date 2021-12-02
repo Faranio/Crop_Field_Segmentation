@@ -305,7 +305,10 @@ def remove_intersections(figures):
         shape = figures[i]
 
         for j in range(i + 1, len(figures)):
-            shape = shape.difference(figures[j])
+            try:
+                shape = shape.difference(figures[j])
+            except shapely.errors.TopologicalError:
+                continue
 
         if shape.geom_type == "MultiPolygon":
             for polygon in shape:
@@ -354,6 +357,9 @@ def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, 
     if save:
         file_name = safe_folder_path.split('/')[-1]
         save_wkt(wkt, data_folder['03_results'][f'{file_name}.gpkg'])
+
+    working_folder['Masks'].clear()
+    working_folder['Tiles'].clear()
         
     return wkt
 
