@@ -358,8 +358,7 @@ def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, 
         file_name = safe_folder_path.split('/')[-1]
         save_wkt(wkt, data_folder['03_results'][f'{file_name}.gpkg'])
 
-    working_folder['Masks'].clear()
-    working_folder['Tiles'].clear()
+    working_folder.clear()
         
     return wkt
 

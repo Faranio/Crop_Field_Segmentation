@@ -35,17 +35,3 @@ for file in files:
     file_paths.append(os.path.join(data_folder['04_test'], file))
     
 perform_predictions(file_paths)
-    
-# if __name__ == '__main__':
-#     files = os.listdir(data_folder['04_test'])
-#     file_paths = []
-#
-#     for file in files:
-#         file_paths.append(os.path.join(data_folder['04_test'], file))
-#
-#     try:
-#         app.start()
-#         perform_predictions.delay(file_paths).get(disable_sync_subtasks=False)
-#     except Exception as exc:
-#         logger.exception(str(exc))
-#         raise
