@@ -3,7 +3,7 @@ import os
 from celery import Celery
 from lgblkb_tools import logger
 
-from config import broker_url, data_folder, settings
+from config import broker_url, data_folder, test_folder, settings
 from inference import predict_safe_regions
 
 app = Celery('Crop_Field_Segmentation', broker=broker_url, backend='rpc://')
@@ -19,6 +19,7 @@ def perform_predictions(file_paths):
             continue
 
         predict_safe_regions(
+            region='UA',
             safe_folder_path=file_path,
             tile_width=20000,
             tile_height=20000,
@@ -28,10 +29,13 @@ def perform_predictions(file_paths):
         )
 
 
-files = os.listdir(data_folder['04_test'])
+files = os.listdir(test_folder)
 file_paths = []
 
 for file in files:
-    file_paths.append(os.path.join(data_folder['04_test'], file))
+    name, ext = os.path.splitext(file)
+    
+    if ext == ".tiff":
+        file_paths.append(os.path.join(test_folder, file))
     
 perform_predictions(file_paths)

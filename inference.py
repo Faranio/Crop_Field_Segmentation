@@ -4,6 +4,7 @@ from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
+import psycopg2
 import rasterio
 import rasterio.mask
 import shapely
@@ -11,6 +12,7 @@ import shapely.errors
 import shapely.wkt
 import torch
 from PIL import Image
+from datetime import datetime, timezone
 from lgblkb_tools import Folder, logger
 from lgblkb_tools.gdal_datasets import GdalMan
 from lgblkb_tools.pathify import get_name
@@ -319,17 +321,45 @@ def remove_intersections(figures):
     return shapes
 
 
-def get_single_wkt_from_masks(masks_folder, intersection_threshold, confidence_mapping):
+def get_single_multipolygon_from_masks(masks_folder, intersection_threshold, confidence_mapping):
     shapes = read_shapes_from_geojson(masks_folder, confidence_mapping)
     shapes = remove_overlapping_shapes(shapes, intersection_threshold)
     shapes = remove_intersections(shapes)
 
     logger.info(f'Number of fields found: {len(shapes)}')
-    wkt = shapely.geometry.MultiPolygon(shapes).wkt
-    return wkt
+    # multipolygon = shapely.geometry.MultiPolygon(shapes)
+    return shapes
 
 
-def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, confidence=0.7,
+def update_table(region, file_path, multipolygon):
+    try:
+        connection = psycopg2.connect(
+            user='imagiflow',
+            password='nfapy32f5ypa937ny3nyptsdnps34yt7s83dn4y7vcbnps3f',
+            host='54.93.234.138',
+            port='5439',
+            database='imagiflow'
+        )
+        cursor = connection.cursor()
+
+        current_date = datetime.now(timezone.utc)
+        
+        for polygon in multipolygon:
+            query = "INSERT INTO crop_field_polygons(created_at, region, file_path, field_polygon) " \
+                    "VALUES (%s, %s, %s, ST_GeomFromText(%s, 3857));"
+            cursor.execute(query, (current_date, region, file_path, polygon.wkt))
+
+        connection.commit()
+    except (Exception, psycopg2.Error) as error:
+        logger.error("ERROR! Happened while fetching data from PostgreSQL:", error)
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+            logger.info("PostgreSQL connection is closed.\n")
+
+
+def predict_safe_regions(safe_folder_path, region='KZ', tile_width=20000, tile_height=20000, confidence=0.7,
                          intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80, save=False):
     safe_folder = Folder(safe_folder_path)
     try:
@@ -344,7 +374,7 @@ def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, 
         separate=True,
         out_filepath=out_filepath
     )
-    wkt = predict_regions(
+    shapes = predict_regions(
         tif_file_name=out_filepath,
         tile_width=tile_width,
         tile_height=tile_height,
@@ -355,12 +385,13 @@ def predict_safe_regions(safe_folder_path, tile_width=20000, tile_height=20000, 
     )
     
     if save:
-        file_name = safe_folder_path.split('/')[-1]
-        save_wkt(wkt, data_folder['03_results'][f'{file_name}.gpkg'])
+        update_table(region, safe_folder_path, shapes)
+        # file_name = safe_folder_path.split('/')[-1]
+        # save_wkt(multipolygon.wkt, data_folder['03_results'][f'{file_name}.gpkg'])
 
     working_folder.clear()
         
-    return wkt
+    return shapes
 
 
 def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
@@ -382,15 +413,15 @@ def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confiden
         tile_height=tile_height,
         working_folder=working_folder
     )
-    multipolygon_wkt = get_single_wkt_from_masks(
+    shapes = get_single_multipolygon_from_masks(
         masks_folder=masks_folder,
         intersection_threshold=intersection_threshold,
         confidence_mapping=mapping
     )
-    # TODO: Clear the whole folder
-    working_folder['Masks'].clear()
-    working_folder['Tiles'].clear()
-    return multipolygon_wkt
+    
+    working_folder.clear()
+    
+    return shapes
 
 
 def save_wkt(wkt: str, filepath, crs='EPSG:3857', driver='GeoJSON'):

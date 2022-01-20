@@ -7,6 +7,7 @@ services:
       - ".:/usr/src/app"
       - "/nfs/storage/data/Crop_Field_Segmentation/caches:/usr/src/app/caches"
       - "/nfs/storage/data/Crop_Field_Segmentation/data:/usr/src/app/data"
+      - "/nfs/storage/UA:/usr/src/app/test
     networks:
       - "redis_network"
     command: bash -c "celery -A celery_worker worker -Q crop_field_segmentation -P threads --loglevel=INFO"
