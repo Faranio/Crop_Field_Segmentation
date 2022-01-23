@@ -362,6 +362,7 @@ def update_table(region, file_path, multipolygon):
 def predict_safe_regions(safe_folder_path, region='KZ', tile_width=20000, tile_height=20000, confidence=0.7,
                          intersection_threshold=0.5, tile_stride_factor=2, mask_pixel_threshold=80, save=False):
     safe_folder = Folder(safe_folder_path)
+    
     try:
         band_paths = [safe_folder.glob_search(f'**/*_B0{band_num}_10m.jp2')[0] for band_num in [2, 3, 4]]
     except IndexError:
@@ -390,12 +391,13 @@ def predict_safe_regions(safe_folder_path, region='KZ', tile_width=20000, tile_h
         # save_wkt(multipolygon.wkt, data_folder['03_results'][f'{file_name}.gpkg'])
 
     working_folder.clear()
+    os.rmdir(working_folder)
         
     return shapes
 
 
-def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
-                    mask_pixel_threshold=80, tile_stride_factor=2):
+def predict_regions(tif_file_name, region='KZ', tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
+                    mask_pixel_threshold=80, tile_stride_factor=2, save=False):
     logger.info(f"Image path: {tif_file_name}")
     temp_crs_converted_file_name = 'tif_file_with_epsg_3857.tiff'
     tif_file_folder = Folder(tif_file_name)
@@ -419,7 +421,11 @@ def predict_regions(tif_file_name, tile_width=20000, tile_height=20000, confiden
         confidence_mapping=mapping
     )
     
+    if save:
+        update_table(region, tif_file_name, shapes)
+    
     working_folder.clear()
+    os.rmdir(working_folder)
     
     return shapes
 
