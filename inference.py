@@ -132,19 +132,25 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
     max_left, max_bottom, max_right, max_top = source_file.bounds
     left, top = max_left, max_top
     tile_count = 0
-    horizontal_last = False
-    vertical_last = False
-
+    
+    image_width, image_height = max_right - max_left, max_top - max_bottom
+    
+    if image_width < tile_width:
+        tile_width = image_width
+    
+    if image_height < tile_height:
+        tile_height = image_height
+    
     while True:
         tile_path = out_folder[f'{tile_count}.tiff']
         tile_count += 1
-
+        
         if tile_count % 25 == 0:
             logger.info(f'Tile count: {tile_count}')
-
+        
         if os.path.exists(tile_path):
             continue
-
+        
         tile_region = [{'type': 'Polygon', 'coordinates': [[(left, top, 0.0),
                                                             (left + tile_width, top, 0.0),
                                                             (left + tile_width, top - tile_height, 0.0),
@@ -157,27 +163,20 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
             "width": out_image.shape[2],
             "transform": out_transform
         })
-
+        
         tile = rasterio.open(tile_path, 'w', **out_meta)
         tile.write(out_image)
         tile.close()
-
-        left += tile_width / tile_stride_factor
-
-        if horizontal_last or left >= max_right:
+        
+        if left + tile_width >= max_right:
+            if top - tile_height <= max_bottom:
+                break
+            
             left = max_left
             top -= tile_height / tile_stride_factor
-            horizontal_last = False
-        elif left + tile_width >= max_right:
-            left = max_right - tile_width
-            horizontal_last = True
-
-        if (vertical_last and horizontal_last) or top <= max_bottom:
-            break
-        elif top - tile_height <= max_bottom:
-            top = max_bottom + tile_height
-            vertical_last = True
-
+        else:
+            left += tile_width / tile_stride_factor
+    
     source_file.close()
     print(f"Tiles created - {tile_count}")
 
@@ -357,6 +356,35 @@ def update_table(region, file_path, multipolygon):
             cursor.close()
             connection.close()
             logger.info("PostgreSQL connection is closed.\n")
+            
+            
+def is_in_table(region, file_path):
+    result = False
+    
+    try:
+        connection = psycopg2.connect(
+            user='imagiflow',
+            password='nfapy32f5ypa937ny3nyptsdnps34yt7s83dn4y7vcbnps3f',
+            host='54.93.234.138',
+            port='5439',
+            database='imagiflow'
+        )
+        cursor = connection.cursor()
+        
+        query = "SELECT * FROM crop_field_polygons WHERE region = %s AND file_path = %s;"
+        cursor.execute(query, (region, file_path))
+        
+        if len(cursor.fetchall()) != 0:
+            result = True
+    except (Exception, psycopg2.Error) as error:
+        logger.error("ERROR! Happened while fetching data from PostgreSQL:", error)
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+            logger.info("PostgreSQL connection is closed.\n")
+        
+    return result
 
 
 def predict_safe_regions(safe_folder_path, region='KZ', tile_width=20000, tile_height=20000, confidence=0.7,
@@ -398,6 +426,9 @@ def predict_safe_regions(safe_folder_path, region='KZ', tile_width=20000, tile_h
 
 def predict_regions(tif_file_name, region='KZ', tile_width=20000, tile_height=20000, confidence=0.7, intersection_threshold=0.8,
                     mask_pixel_threshold=80, tile_stride_factor=2, save=False):
+    if is_in_table(region, tif_file_name):
+        return []
+    
     logger.info(f"Image path: {tif_file_name}")
     temp_crs_converted_file_name = 'tif_file_with_epsg_3857.tiff'
     tif_file_folder = Folder(tif_file_name)
