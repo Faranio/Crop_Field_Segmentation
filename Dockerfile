@@ -16,13 +16,21 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     build-essential \
     python3.8-dev \
     software-properties-common \
-    gdal-bin libgdal-dev \
-    swig potrace \
-    wget unzip file curl \
-    libpq-dev libspatialindex-dev \
+    gdal-bin \
+    libgdal-dev \
+    swig \
+    potrace \
+    wget \
+    unzip \
+    file \
+    curl \
+    libpq-dev \
+    libspatialindex-dev \
     libsm6 libxext6 libxrender-dev ffmpeg libgl1-mesa-dev \
     python3-pip python3-venv \
-    libeccodes0 nodejs npm &&\
+    libeccodes0 &&\
+#    nodejs \
+#    npm &&\
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &&\
     python3 -m venv $VIRTUAL_ENV
 
@@ -31,7 +39,9 @@ RUN pip3 install -U pip wheel --no-cache-dir setuptools==58.0 numpy &&\
                 --global-option="-I/usr/include/gdal" \
                 GDAL==$(gdal-config --version) &&\
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN npm i -g simplify-geojson
+
+#RUN npm i -g simplify-geojson
+
 FROM base as builder
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
     ansible sshpass \

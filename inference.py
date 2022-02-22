@@ -127,19 +127,14 @@ def save_geojson_coordinates(mask_idx, mask, masks_folder, tiles_folder, tile_pa
 
 
 def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2, out_folder='Temp'):
+    logger.info("Cropping image into tiles...")
     out_folder = Folder(out_folder)
     source_file = rasterio.open(tif_file)
     max_left, max_bottom, max_right, max_top = source_file.bounds
     left, top = max_left, max_top
     tile_count = 0
-    
-    image_width, image_height = max_right - max_left, max_top - max_bottom
-    
-    if image_width < tile_width:
-        tile_width = image_width
-    
-    if image_height < tile_height:
-        tile_height = image_height
+    horizontal_last = False
+    vertical_last = False
     
     while True:
         tile_path = out_folder[f'{tile_count}.tiff']
@@ -167,15 +162,22 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
         tile = rasterio.open(tile_path, 'w', **out_meta)
         tile.write(out_image)
         tile.close()
-        
-        if left + tile_width >= max_right:
-            if top - tile_height <= max_bottom:
-                break
-            
+
+        left += tile_width / tile_stride_factor
+
+        if horizontal_last or left >= max_right:
             left = max_left
             top -= tile_height / tile_stride_factor
-        else:
-            left += tile_width / tile_stride_factor
+            horizontal_last = False
+        elif left + tile_width >= max_right:
+            left = max_right - tile_width
+            horizontal_last = True
+
+        if (vertical_last and horizontal_last) or top <= max_bottom:
+            break
+        elif top - tile_height <= max_bottom:
+            top = max_bottom + tile_height
+            vertical_last = True
     
     source_file.close()
     print(f"Tiles created - {tile_count}")
@@ -183,13 +185,15 @@ def crop_tif(tif_file, tile_width=20000, tile_height=20000, tile_stride_factor=2
 
 def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
     uint8_type = True
-    tile = rasterio.open(os.path.join(tiles_folder, tile_path))
+    tile_file = rasterio.open(os.path.join(tiles_folder, tile_path))
 
-    if tile.dtypes[0] != 'uint8':
+    if tile_file.dtypes[0] != 'uint8':
         uint8_type = False
 
-    tile = np.dstack((tile.read(3), tile.read(2), tile.read(1)))
+    tile = np.dstack((tile_file.read(3), tile_file.read(2), tile_file.read(1)))
     tile = np.nan_to_num(tile)
+    
+    tile_file.close()
 
     if np.max(tile) == 0:
         return []
@@ -218,36 +222,57 @@ def process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold):
     return masks
 
 
+def produce_masks(masks_folder, tiles_folder, masks_confidence_mapping, tile_width, tile_height, tile_path, confidence,
+                  mask_pixel_threshold):
+    masks = process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold)
+    logger.info(f"{tile_path}: {len(masks)}")
+    
+    for mask_idx, mask in enumerate(masks):
+        geojson_file_name = save_geojson_coordinates(mask_idx, mask[0], masks_folder, tiles_folder, tile_path,
+                                                     tile_width, tile_height)
+        masks_confidence_mapping[geojson_file_name] = mask[1]
+    
+    return masks_confidence_mapping
+
+
 def predict_masks(image_path, confidence, working_folder, mask_pixel_threshold, tile_stride_factor, tile_width,
                   tile_height):
-    logger.info("Predicting field masks...")
     masks_folder = working_folder['Masks']
     tiles_folder = working_folder['Tiles']
     crop_tif(image_path, tile_width, tile_height, tile_stride_factor=tile_stride_factor, out_folder=tiles_folder)
     masks_confidence_mapping = {}
 
+    logger.info("Predicting masks in tiles...")
+
     for tile_idx, tile_path in enumerate(os.listdir(tiles_folder)):
         if tile_idx % 10 == 0:
             logger.info(f"Tile index: {tile_idx}")
-
-        masks = process_tile(tiles_folder, tile_path, confidence, mask_pixel_threshold)
-        logger.info(f"{tile_path}: {len(masks)}")
-
-        for mask_idx, mask in enumerate(masks):
-            geojson_file_name = save_geojson_coordinates(mask_idx, mask[0], masks_folder, tiles_folder, tile_path,
-                                                         tile_width, tile_height)
-            masks_confidence_mapping[geojson_file_name] = mask[1]
+    
+        masks_confidence_mapping = produce_masks(
+            masks_folder,
+            tiles_folder,
+            masks_confidence_mapping,
+            tile_width,
+            tile_height,
+            tile_path,
+            confidence,
+            mask_pixel_threshold
+        )
 
     return masks_confidence_mapping
 
 
-def show_image_and_tile_shapes(image_path, tile_width, tile_height):
+def get_smallest_tile_size(image_path, tile_width, tile_height):
     image = rasterio.open(image_path)
+    image_width, image_height = image.bounds[2] - image.bounds[0], image.bounds[3] - image.bounds[1]
+    
     logger.info(f"[Tile width] X [Tile height]: [{tile_width}] X [{tile_height}]")
-    logger.info(f"[Image tile width] X [Image tile height]: [{image.bounds[2] - image.bounds[0]}] X "
-                f"[{image.bounds[3] - image.bounds[1]}]")
+    logger.info(f"[Image tile width] X [Image tile height]: [{image_width}] X "
+                f"[{image_height}]")
     logger.info(f"[Image pixel width] X [Image pixel height]: [{image.width}] X [{image.height}]")
     image.close()
+    
+    return min(image_width, image_height, tile_width, tile_height)
 
 
 def read_shapes_from_geojson(masks_folder, confidence_mapping):
@@ -436,7 +461,9 @@ def predict_regions(tif_file_name, region='KZ', tile_width=20000, tile_height=20
     masks_folder = working_folder['Masks']
     out_filepath = working_folder[temp_crs_converted_file_name]
     convert_crs(tif_file_name, out_filepath)
-    show_image_and_tile_shapes(out_filepath, tile_width, tile_height)
+    tile_size = get_smallest_tile_size(out_filepath, tile_width, tile_height)
+    tile_width, tile_height = tile_size, tile_size
+    
     mapping = predict_masks(
         image_path=out_filepath,
         confidence=confidence,
