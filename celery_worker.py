@@ -27,7 +27,6 @@ def perform_predictions(file_paths):
             intersection_threshold=0.5,
             save=True
         )
-        break
 
 
 files = os.listdir(test_folder)
